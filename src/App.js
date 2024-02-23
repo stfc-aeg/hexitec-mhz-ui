@@ -1,4 +1,3 @@
-import logo from './logo.svg';
 import './App.css';
 
 import React from 'react';
@@ -6,18 +5,17 @@ import {useState} from 'react';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import {OdinApp, StatusBox, useAdapterEndpoint, TitleCard, DropdownSelector, WithEndpoint, ToggleSwitch, OdinGraph, OdinDoubleSlider} from 'odin-react';
+import {OdinApp, useAdapterEndpoint} from 'odin-react';
 import 'odin-react/dist/index.css'
 
-import {StatusBadge, LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, LOKICarrierSummaryCard} from './Loki.js'
+import {LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, LOKICarrierSummaryCard} from './Loki.js'
 
-import {Row, Col, Container, Dropdown, Card, Alert, Button, Spinner, Image, Accordion, Toast, ToastContainer} from 'react-bootstrap'
-import * as Icon from 'react-bootstrap-icons';
+import {Row, Col, Container} from 'react-bootstrap'
 
 function HMHz() {
     const periodicEndpoint = useAdapterEndpoint("lokicarrier", "", 1000);
     const staticEndpoint = useAdapterEndpoint("lokicarrier");
-    const periodicSlowEndpoint = useAdapterEndpoint("lokicarrier", "", 5000);
+    //const periodicSlowEndpoint = useAdapterEndpoint("lokicarrier", "", 5000);
 
     const [loki_connection_ok, set_loki_connection_ok] = useState(true);
     const [foundLoopException, setFoundLoopException] = useState(false);
