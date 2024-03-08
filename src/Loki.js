@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {DropdownSelector, WithEndpoint, TitleCard, OdinGraph, StatusBox} from 'odin-react';
-import {Dropdown, Row, Col, Alert, Card} from 'react-bootstrap';
+import {Dropdown, Row, Col, Alert} from 'react-bootstrap';
 import * as Icon from 'react-bootstrap-icons';
 
 import Mermaid from "./Mermaid";
