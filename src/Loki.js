@@ -11,15 +11,25 @@ const ClkgenEndpointDropdown = WithEndpoint(DropdownSelector);
 export function StatusBadge(_ref) {
     let label = _ref.label;
     let type = _ref.type;
+
     if (type === null || typeof type === 'undefined') {
         type = "primary";
     }
+
+    // Override to dark text on yellow to make things visible
+    let txt;
+    if (type === "warning") {
+        txt = "dark"
+    } else {
+        txt = "light"
+    }
+
     let wrap = _ref.wrap;
     if (wrap === null || typeof wrap === 'undefined') {
         wrap = false
     }
 
-    var fullclass = "badge bg-"+type + " " + (wrap ? "text-wrap" : "");
+    var fullclass = "badge bg-"+type + " " + (wrap ? "text-wrap" : "") + " text=" + txt;
     return (
         <span class={fullclass}>{label}</span>
     )
@@ -252,17 +262,8 @@ export function LOKICarrierInfo({adapterEndpoint, loki_connection_state}) {
 
 export function LOKICarrierSummaryCard({adapterEndpoint, loki_connection_state, foundLoopException}) {
     return (
-        <Col class="col align-self-center">
-            <Card className="text-center" style={{width: '18rem'}}>
-                <Card.Body>
-                    <Card.Title>
-                        LOKI
-                    </Card.Title>
-                    <Card.Text>
+        <TitleCard title="LOKI">
                         <Row>
-                            <Icon.Motherboard  size={30} color={loki_connection_state ? "green" : "red"}/>
-                            <Card>
-                                <Row>
                                     <Col>
                                         <Icon.Cpu  size={30} />
                                         <StatusBadge label={Math.round(adapterEndpoint.data?.environment?.temperature?.zynq_ps) + " \u00b0C"} />
@@ -275,19 +276,14 @@ export function LOKICarrierSummaryCard({adapterEndpoint, loki_connection_state, 
                                         <Icon.Droplet  size={30} />
                                         <StatusBadge label={Math.round(adapterEndpoint.data?.environment?.humidity?.BOARD) + "% RH"} />
                                     </Col>
-                                </Row>
-                            </Card>
                         </Row>
                         <Row>
                             <StatusBadge label={loki_connection_state ? "Connected" : "No Con"} type={loki_connection_state ? "success" : "danger"} />
                         </Row>
                         <Row>
-                            <StatusBadge label={(!foundLoopException && loki_connection_state) ? "" : "Loop Error"} type={!foundLoopException ? "success" : "danger"} />
+                            <StatusBadge label={(foundLoopException && loki_connection_state) ? "Loop Error" : ""} type={!foundLoopException ? "success" : "danger"} />
                         </Row>
-                    </Card.Text>
-                </Card.Body>
-            </Card>
-        </Col>
+        </TitleCard>
     )
 }
 
@@ -367,7 +363,7 @@ export function LOKIPerformanceDisplay({adapterEndpoint, show_cpu=true, show_cpu
     )
 }
 
-function LOKICPUInfo({cpuInfo, show_cpu_times=true, show_cpu_times_graph=false}) {
+function LOKICPUInfo({cpuInfo, show_cpu_times=true, show_cpu_times_graph=true}) {
 
     if (cpuInfo === null || typeof cpuInfo === 'undefined') {
         return (<></>)
