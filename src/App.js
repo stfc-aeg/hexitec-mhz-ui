@@ -10,7 +10,7 @@ import 'odin-react/dist/index.css'
 
 import {LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, LOKICarrierSummaryCard, StatusBadge} from './Loki.js'
 
-import {Row, Col, Container, Card, ProgressBar, Alert, Button, Spinner, Stack} from 'react-bootstrap'
+import {Row, Col, Container, ProgressBar, Alert, Button, Spinner, Stack} from 'react-bootstrap'
 import * as Icon from 'react-bootstrap-icons';
 
 function HMHz() {
@@ -268,7 +268,7 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
             <Stack gap={1}>
                 <Row>
                     <Col>
-                        <ProgressBar now={sys_init_progress_perc} label={sys_init_state} variant={sys_init_err ? "danger" : sys_init_progress_perc == 100 ? "success" : "primary"} striped={sys_init_state != sys_init_state_target ? true : false} animated={sys_init_state != sys_init_state_target ? true : false}/>
+                        <ProgressBar now={sys_init_progress_perc} label={sys_init_state} variant={sys_init_err ? "danger" : sys_init_progress_perc === 100 ? "success" : "primary"} striped={sys_init_state !== sys_init_state_target ? true : false} animated={sys_init_state !== sys_init_state_target ? true : false}/>
                     </Col>
                 </Row>
                 <Row>
@@ -282,21 +282,21 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
                     <Col md={6}>
                         <PowerBoardInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="PWR_DONE" variant={power_board_init ? "success" : "outline-primary"}>
                             {power_board_init && <Icon.Repeat size={20} />}
-                            {sys_init_state == "PWR_INIT" && <Spinner animation="border" size="sm" />}
+                            {sys_init_state === "PWR_INIT" && <Spinner animation="border" size="sm" />}
                             {power_board_init ? " Re-init Power Board" : " Init Power Board"}
                         </PowerBoardInitEndpointButton>
                     </Col>
                     <Col md={4}>
                         <COBInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="COB_DONE" variant={cob_init ? "success" : "outline-primary"}>
                             {cob_init && <Icon.Repeat size={20} />}
-                            {sys_init_state == "COB_INIT" && <Spinner animation="border" size="sm" />}
+                            {sys_init_state === "COB_INIT" && <Spinner animation="border" size="sm" />}
                             {cob_init ? " Re-init COB" : " Init COB"}
                         </COBInitEndpointButton>
                     </Col>
                     <Col md={2}>
                         <ASICInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="ASIC_DONE" variant={asic_init ? "success" : "outline-primary"}>
                             {asic_init && <Icon.Repeat size={20} />}
-                            {sys_init_state == "ASIC_INIT" && <Spinner animation="border" size="sm" />}
+                            {sys_init_state === "ASIC_INIT" && <Spinner animation="border" size="sm" />}
                             {asic_init ? " Re-init ASIC" : " Init ASIC"}
                         </ASICInitEndpointButton>
                     </Col>
