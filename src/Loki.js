@@ -261,22 +261,28 @@ export function LOKICarrierInfo({adapterEndpoint, loki_connection_state}) {
 }
 
 export function LOKICarrierSummaryCard({adapterEndpoint, loki_connection_state, foundLoopException}) {
+    let icons = (<></>);
+    if (loki_connection_state) {
+        icons = (
+            <Row>
+                        <Col>
+                            <Icon.Cpu  size={30} />
+                            <StatusBadge label={Math.round(adapterEndpoint.data?.environment?.temperature?.zynq_ps) + " \u00b0C"} />
+                        </Col>
+                        <Col>
+                            <Icon.Box  size={30} />
+                            <StatusBadge label={Math.round(adapterEndpoint.data?.environment?.temperature?.BOARD) + " \u00b0C"} />
+                        </Col>
+                        <Col>
+                            <Icon.Droplet  size={30} />
+                            <StatusBadge label={Math.round(adapterEndpoint.data?.environment?.humidity?.BOARD) + "% RH"} />
+                        </Col>
+            </Row>
+        );
+    }
     return (
         <TitleCard title="LOKI">
-                        <Row>
-                                    <Col>
-                                        <Icon.Cpu  size={30} />
-                                        <StatusBadge label={Math.round(adapterEndpoint.data?.environment?.temperature?.zynq_ps) + " \u00b0C"} />
-                                    </Col>
-                                    <Col>
-                                        <Icon.Box  size={30} />
-                                        <StatusBadge label={Math.round(adapterEndpoint.data?.environment?.temperature?.BOARD) + " \u00b0C"} />
-                                    </Col>
-                                    <Col>
-                                        <Icon.Droplet  size={30} />
-                                        <StatusBadge label={Math.round(adapterEndpoint.data?.environment?.humidity?.BOARD) + "% RH"} />
-                                    </Col>
-                        </Row>
+                        {icons}
                         <Row>
                             <StatusBadge label={loki_connection_state ? "Connected" : "No Con"} type={loki_connection_state ? "success" : "danger"} />
                         </Row>

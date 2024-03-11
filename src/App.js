@@ -10,7 +10,7 @@ import 'odin-react/dist/index.css'
 
 import {LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, LOKICarrierSummaryCard, StatusBadge} from './Loki.js'
 
-import {Row, Col, Container, ProgressBar, Alert, Button, Spinner, Stack} from 'react-bootstrap'
+import {Row, Col, Container, ProgressBar, Alert, Button, Spinner, Stack, Accordion} from 'react-bootstrap'
 import * as Icon from 'react-bootstrap-icons';
 
 function HMHz() {
@@ -31,6 +31,7 @@ function HMHz() {
     let sys_init_err = periodicEndpoint?.data?.application?.system_state.ENABLE_STATE_ERROR;
     let hv_enabled = periodicEndpoint?.data?.application?.HV.ENABLE;
     let hv_saved = periodicEndpoint?.data?.application?.HV?.control_voltage_save;
+    let hv_overridden = periodicEndpoint?.data?.application?.HV?.control_voltage_overridden;
     let hv_bias_readback = Math.round(periodicEndpoint?.data?.application?.HV.readback_bias);
     let power_board_temp = periodicEndpoint?.data?.environment?.temperature?.POWER_BOARD;
     let asic_temp = periodicEndpoint?.data?.environment?.temperature?.ASIC;
@@ -52,7 +53,7 @@ function HMHz() {
                         <LOKICarrierSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} foundLoopException={foundLoopException}/>
                     </Col>
                     <Col md={3}>
-                        <HMHzPowerBoardSummaryCard loki_connection_state={loki_connection_ok} power_board_present={power_board_present} power_board_init={power_board_init} power_board_temp={power_board_temp} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} regs_en={regs_en} />
+                        <HMHzPowerBoardSummaryCard loki_connection_state={loki_connection_ok} power_board_present={power_board_present} power_board_init={power_board_init} power_board_temp={power_board_temp} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} regs_en={regs_en} />
                     </Col>
                     <Col md={3}>
                         <HMHzCOBSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_present={cob_present} cob_init={cob_init} asic_temp={asic_temp} asic_en={asic_en} asic_init={asic_init} fastdata_init={fastdata_init} fastdata_en={fastdata_en} asic_sync={asic_sync} />
@@ -62,7 +63,13 @@ function HMHz() {
                     </Col>
                 </Row>
                 <Row>
-                    <HMHzHVControl adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok}/>
+                    <Col>
+                        <TitleCard title="Slow Readout">
+                        </TitleCard>
+                    </Col>
+                    <Col md={4}>
+                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} />
+                    </Col>
                 </Row>
             </Container>
             <Container fluid>
@@ -102,7 +109,64 @@ function HMHz() {
     )
 }
 
-function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, power_board_init, power_board_temp, hv_enabled, hv_bias_readback, hv_saved, regs_en}) {
+function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden}) {
+    if (!loki_connection_state) {
+        return (<></>)
+    }
+
+    return (
+        <>
+            <Accordion defaultActiveKey="0">
+                <Accordion.Item eventKey="0" disable={true}>
+                    <Accordion.Header>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto">
+                                High Voltage Bias
+                            </Col>
+                            <Col md="auto">
+                                <StatusBadge label={hv_enabled ? "ON" : "Off"} type={hv_enabled ? "success" : "warning"}/>
+                            </Col>
+                            <Col md="auto">
+                                <StatusBadge label={Math.round(hv_bias_readback) + " v"} type={hv_enabled ? "success" : "warning"} />
+                            </Col>
+                            <Col md="auto">
+                                <StatusBadge label={hv_saved ? "" : (<><Icon.Save /><span>&nbsp;unsaved</span></>)} type="danger" />
+                            </Col>
+                            <Col md="auto">
+                                <StatusBadge label={hv_overridden ? (<><Icon.Save /><span>&nbsp;overridden</span></>) : ""} type="danger" />
+                            </Col>
+                        </Row>
+                    </Accordion.Header>
+                    <Accordion.Body>
+                        <HMHzHVControl adapterEndpoint={adapterEndpoint} loki_connection_state={loki_connection_state} />
+                    </Accordion.Body>
+                </Accordion.Item>
+                <Accordion.Item eventKey="1">
+                    <Accordion.Header>Pre-Amplifier</Accordion.Header>
+                    <Accordion.Body>
+                    </Accordion.Body>
+                </Accordion.Item>
+                <Accordion.Item eventKey="2">
+                    <Accordion.Header>Frame Config</Accordion.Header>
+                    <Accordion.Body>
+                    </Accordion.Body>
+                </Accordion.Item>
+                <Accordion.Item eventKey="3">
+                    <Accordion.Header>VCAL Input</Accordion.Header>
+                    <Accordion.Body>
+                    </Accordion.Body>
+                </Accordion.Item>
+                <Accordion.Item eventKey="4">
+                    <Accordion.Header>Test Pattern</Accordion.Header>
+                    <Accordion.Body>
+                    </Accordion.Body>
+                </Accordion.Item>
+            </Accordion>
+        </>
+    )
+}
+
+function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, power_board_init, power_board_temp, hv_enabled, hv_bias_readback, regs_en}) {
     if (!loki_connection_state) {
         return (<></>)
     }
@@ -130,9 +194,6 @@ function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, 
                     </Col>
                     <Col md="auto">
                         <StatusBadge label={Math.round(hv_bias_readback) + " v"} type={hv_enabled ? "success" : "warning"} />
-                    </Col>
-                    <Col md="auto">
-                        <StatusBadge label={hv_saved ? "" : (<><Icon.Save /><span>&nbsp;unsaved</span></>)} type="danger" />
                     </Col>
                 </Row>
                 <Row>
