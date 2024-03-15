@@ -20,6 +20,7 @@ function HMHz() {
 
     const [loki_connection_ok, set_loki_connection_ok] = useState(true);
     const [foundLoopException, setFoundLoopException] = useState(false);
+    const [all_firefly_channels_enabled, set_all_firefly_channels_enabled] = useState(false);
 
     let power_board_present = periodicEndpoint.data?.control?.presence_detection.backplane;
     let power_board_init = periodicEndpoint.data?.application?.system_state.POWER_BOARD_INIT;
@@ -42,6 +43,8 @@ function HMHz() {
     let fastdata_en = periodicEndpoint?.data?.application?.system_state.ASIC_FASTDATA_EN;
     let regs_en = periodicEndpoint?.data?.application?.system_state.REGS_EN;
     let asic_sync = periodicEndpoint?.data?.application?.system_state.SYNC;
+    let ff1_pn = periodicEndpoint?.data?.application?.firefly?.ch00to09?.PARTNUMBER;
+    let ff2_pn = periodicEndpoint?.data?.application?.firefly?.ch10to19?.PARTNUMBER;
 
     return (
         <OdinApp title="HEXITEC-MHz UI" navLinks={["HEXITEC-MHz Control", "Debug Info", "LOKI System"]}>
@@ -57,7 +60,7 @@ function HMHz() {
                         <HMHzPowerBoardSummaryCard loki_connection_state={loki_connection_ok} power_board_present={power_board_present} power_board_init={power_board_init} power_board_temp={power_board_temp} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} regs_en={regs_en} />
                     </Col>
                     <Col md={3}>
-                        <HMHzCOBSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_present={cob_present} cob_init={cob_init} asic_temp={asic_temp} asic_en={asic_en} asic_init={asic_init} fastdata_init={fastdata_init} fastdata_en={fastdata_en} asic_sync={asic_sync} />
+                        <HMHzCOBSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_present={cob_present} cob_init={cob_init} asic_temp={asic_temp} asic_en={asic_en} asic_init={asic_init} fastdata_init={fastdata_init} fastdata_en={fastdata_en} asic_sync={asic_sync} ff1_pn={ff1_pn} ff2_pn={ff2_pn} />
                     </Col>
                     <Col>
                         <HMHzStateControl adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} sys_init_state={sys_init_state} sys_init_state_target={sys_init_state_target} sys_init_progress_perc={sys_init_progress} sys_init_err={sys_init_err} power_board_init={power_board_init} cob_init={cob_init} asic_init={asic_init}/>
@@ -77,7 +80,7 @@ function HMHz() {
                         </TitleCard>
                     </Col>
                     <Col md={4}>
-                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch}/>
+                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled}/>
                     </Col>
                 </Row>
             </Container>
@@ -118,12 +121,10 @@ function HMHz() {
     )
 }
 
-function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch}) {
+function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled}) {
     if (!loki_connection_state) {
         return (<></>)
     }
-
-    console.log('powerboard init ', power_board_init);
 
     return (
         <>
@@ -206,8 +207,18 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, asic_init
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="5">
-                    <Accordion.Header>Channel Config</Accordion.Header>
+                    <Accordion.Header>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto">
+                                Channel Config
+                            </Col>
+                            <Col md="auto" hidden={all_firefly_channels_enabled || !asic_init}>
+                                <StatusBadge label={(<><Icon.ExclamationTriangleFill /><span>&nbsp;Some FireFly Channels Disabled</span></>)} type="danger"/>
+                            </Col>
+                        </Row>
+                    </Accordion.Header>
                     <Accordion.Body>
+                        <HMHzChannelControl adapterEndpoint={adapterEndpoint} loki_connection_state={loki_connection_state} cob_init={cob_init} asic_init={asic_init} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled}/>
                     </Accordion.Body>
                 </Accordion.Item>
             </Accordion>
@@ -280,7 +291,7 @@ function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, 
 }
 
 const SyncEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
-function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present, cob_init, asic_temp, asic_en, asic_init, fastdata_init, fastdata_en, asic_sync}) {
+function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present, cob_init, asic_temp, asic_en, asic_init, fastdata_init, fastdata_en, asic_sync, ff1_pn, ff2_pn}) {
     if (!loki_connection_state) {
         return (<></>)
     }
@@ -316,28 +327,28 @@ function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present
                 </Row>
                 <Row>
                     <Col md={1}>
-                        <Icon.Cpu />
-                    </Col>
-                    <Col md={4}>
-                        ASIC SYNC:
-                    </Col>
-                    <Col md="auto">
-                        <StatusBadge label={asic_sync ? "High" : "Low"} type={asic_sync ? "success" : "warning"} />
-                        <SyncEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Manual" fullpath="application/system_state/SYNC" checked={adapterEndpoint.data.application?.system_state?.SYNC} value={adapterEndpoint.data.application?.system_state?.SYNC} />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col md={1}>
                         <Icon.BoxArrowRight />
                     </Col>
                     <Col md={4}>
                         Fast Data:
                     </Col>
                     <Col md="auto">
-                        <StatusBadge label={fastdata_en ? "Enabled" : "Disabled"} type={fastdata_en ? "success" : "danger"} />
+                        <StatusBadge label={fastdata_en ? "" : "Disabled"} type={fastdata_en ? "success" : "danger"} />
                     </Col>
                     <Col md="auto">
-                        <StatusBadge label={fastdata_init ? "Initialised" : "Not Initialised"} type={fastdata_init ? "success" : "warning"} />
+                        {fastdata_en && <StatusBadge label={fastdata_init ? "Initialised" : "Not Initialised"} type={fastdata_init ? "success" : "warning"} />}
+                    </Col>
+                </Row>
+                <Row>
+                    <Col md={1}>
+                    </Col>
+                    <Col md="auto">
+                        FF1
+                        <StatusBadge label={ff1_pn ? ff1_pn : "No Module"} type={ff1_pn ? "success" : "danger"} />
+                    </Col>
+                    <Col md="auto">
+                        FF2
+                        <StatusBadge label={ff2_pn ? ff2_pn : "No Module"} type={ff2_pn ? "success" : "danger"} />
                     </Col>
                 </Row>
             </Container>
@@ -529,6 +540,94 @@ function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled}) {
                         </Row>
                     </TitleCard>
                 </Col>
+            </Row>
+        </Container>
+    )
+}
+
+function HMHzChannelControl({adapterEndpoint, loki_connection_state, cob_init, asic_init, set_all_firefly_channels_enabled}) {
+    // This will display information relating to the fast data lanes, related to actual ASIC lane numbering.
+    // Primarily will be focussed on on-COB devices that affect the signal (FireFly channel enable, retimer
+    // settings etc) but could at some point feature ASIC settings such as CML enable.
+
+    if (!cob_init) {
+        return (<></>);
+    }
+
+    // Lanes are taken from firefly because they all exist for firefly. Some do not exist
+    // for the retimer (the bypass, for example).
+    let ff_laneinfo = adapterEndpoint.data?.application?.firefly?.CHANNELS;
+    let retimer_laneinfo = adapterEndpoint.data?.application?.retimer?.CHANNELS;    // May or may not be present
+
+    // Assume true unless we find a disabled channel, or can't read back the channel status
+    let all_firefly_channels_enabled = true;
+
+    let lane_rows;
+    if (typeof ff_laneinfo !== undefined ) {
+        let lane_names = Object.keys(ff_laneinfo);
+        lane_rows = lane_names.map((lane_name) => {
+            let ff_en = ff_laneinfo[lane_name].Enabled;
+            if (ff_en === undefined || ff_en === false){
+                all_firefly_channels_enabled = false;
+            }
+            const ffEndpointToggleSwitch = WithEndpoint(ToggleSwitch);      // Dynamically generate enable switches for current channel
+            let ff_en_col = (
+                <td>
+                    <ffEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Enable" fullpath={"application/firefly/CHANNELS/"+lane_name} checked={ff_en} value={ff_en} />
+                    <StatusBadge label={ff_en ? 'Enabled' : 'Disabled'} type={ff_en ? 'success' : 'danger'}/>
+                </td>
+            )
+
+            let retimer_lock_col = (<></>);
+            let retimer_passthrough_col = (<></>);
+            if (retimer_laneinfo !== undefined) {
+                let retimer_lock = lane_name in retimer_laneinfo ? retimer_laneinfo[lane_name].CDR_Locked : null;
+                let retimer_lock_col = (
+                    <td>
+                        <StatusBadge label={retimer_lock === null ? '' : (retimer_lock ? 'Locked' : 'No')} type={retimer_lock ? 'success' : 'danger'}/>
+                    </td>
+                )
+
+                let retimer_passthrough = lane_name in retimer_laneinfo ? retimer_laneinfo[lane_name].Unlocked_Passthrough : null;
+                let retimer_passthrough_col = (
+                    <td>
+                        <StatusBadge label={retimer_passthrough === null ? '' : (retimer_passthrough ? 'Yes' : 'No')} type={retimer_passthrough ? 'success' : 'danger'}/>
+                    </td>
+                )
+            }
+
+            return (
+                <tr>
+                    <th scope="row">{lane_name}</th>
+                    {ff_en_col}
+                    {retimer_lock_col}
+                    {retimer_passthrough_col}
+                </tr>
+            )
+        });
+    } else {
+        lane_rows = null;
+        all_firefly_channels_enabled = false;
+    }
+
+    set_all_firefly_channels_enabled(all_firefly_channels_enabled);
+
+    return (
+        <Container>
+            <Row className="justify-content-md-center">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Lane Name</th>
+                            <th scope="col">FireFly Output</th>
+                            {retimer_laneinfo !== undefined && <th scope="col">Retimer Locked</th>}
+                            {retimer_laneinfo !== undefined && <th scope="col">Retimer Passthrough</th>}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {lane_rows}
+                    </tbody>
+                </table>
             </Row>
         </Container>
     )
