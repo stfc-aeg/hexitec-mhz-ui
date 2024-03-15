@@ -5,12 +5,12 @@ import {useState} from 'react';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch} from 'odin-react';
+import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch, StatusBox, EndpointButton} from 'odin-react';
 import 'odin-react/dist/index.css'
 
 import {LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, LOKICarrierSummaryCard, StatusBadge} from './Loki.js'
 
-import {Row, Col, Container, ProgressBar, Alert, Button, Spinner, Stack, Accordion} from 'react-bootstrap'
+import {Row, Col, Container, ProgressBar, Alert, Button, Spinner, Stack, Accordion, InputGroup, Form} from 'react-bootstrap'
 import * as Icon from 'react-bootstrap-icons';
 
 function HMHz() {
@@ -32,6 +32,7 @@ function HMHz() {
     let hv_enabled = periodicEndpoint?.data?.application?.HV.ENABLE;
     let hv_saved = periodicEndpoint?.data?.application?.HV?.control_voltage_save;
     let hv_overridden = periodicEndpoint?.data?.application?.HV?.control_voltage_overridden;
+    let hv_mismatch = periodicEndpoint?.data?.application?.HV?.monitor_control_mismatch_detected;
     let hv_bias_readback = Math.round(periodicEndpoint?.data?.application?.HV.readback_bias);
     let power_board_temp = periodicEndpoint?.data?.environment?.temperature?.POWER_BOARD;
     let asic_temp = periodicEndpoint?.data?.environment?.temperature?.ASIC;
@@ -52,7 +53,7 @@ function HMHz() {
                     <Col md={2}>
                         <LOKICarrierSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} foundLoopException={foundLoopException}/>
                     </Col>
-                    <Col md={3}>
+                    <Col md={2}>
                         <HMHzPowerBoardSummaryCard loki_connection_state={loki_connection_ok} power_board_present={power_board_present} power_board_init={power_board_init} power_board_temp={power_board_temp} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} regs_en={regs_en} />
                     </Col>
                     <Col md={3}>
@@ -65,10 +66,18 @@ function HMHz() {
                 <Row>
                     <Col>
                         <TitleCard title="Slow Readout">
+                            <Row>
+                                <Col md={8}>
+                                    Image
+                                </Col>
+                                <Col md="auto">
+                                    Settings
+                                </Col>
+                            </Row>
                         </TitleCard>
                     </Col>
                     <Col md={4}>
-                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} />
+                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch}/>
                     </Col>
                 </Row>
             </Container>
@@ -109,31 +118,36 @@ function HMHz() {
     )
 }
 
-function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden}) {
+function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch}) {
     if (!loki_connection_state) {
         return (<></>)
     }
 
+    console.log('powerboard init ', power_board_init);
+
     return (
         <>
-            <Accordion defaultActiveKey="0">
-                <Accordion.Item eventKey="0" disable={true}>
+            <Accordion >
+                <Accordion.Item eventKey="0">
                     <Accordion.Header>
                         <Row className="justify-content-md-center">
                             <Col md="auto">
                                 High Voltage Bias
                             </Col>
-                            <Col md="auto">
+                            <Col md="auto" hidden={!power_board_init}>
                                 <StatusBadge label={hv_enabled ? "ON" : "Off"} type={hv_enabled ? "success" : "warning"}/>
                             </Col>
-                            <Col md="auto">
+                            <Col md="auto" hidden={!power_board_init}>
                                 <StatusBadge label={Math.round(hv_bias_readback) + " v"} type={hv_enabled ? "success" : "warning"} />
                             </Col>
-                            <Col md="auto">
+                            <Col md="auto" hidden={!power_board_init}>
                                 <StatusBadge label={hv_saved ? "" : (<><Icon.Save /><span>&nbsp;unsaved</span></>)} type="danger" />
                             </Col>
-                            <Col md="auto">
+                            <Col md="auto" hidden={!power_board_init}>
                                 <StatusBadge label={hv_overridden ? (<><Icon.Save /><span>&nbsp;overridden</span></>) : ""} type="danger" />
+                            </Col>
+                            <Col md="auto" hidden={!power_board_init}>
+                                <StatusBadge label={hv_mismatch ? (<><Icon.ExclamationTriangleFill /><span>&nbsp;mismatch</span></>) : ""} type="danger" />
                             </Col>
                         </Row>
                     </Accordion.Header>
@@ -142,22 +156,57 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, power_boa
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="1">
-                    <Accordion.Header>Pre-Amplifier</Accordion.Header>
+                    <Accordion.Header>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto">
+                                Pre-Amplifier
+                            </Col>
+                            <Col md="auto" hidden={!asic_init}>
+                                <StatusBadge label={adapterEndpoint?.data?.application?.asic_settings?.feedback_capacitance + " fF"} type={adapterEndpoint?.data?.application?.asic_settings?.feedback_capacitance ? "primary" : "warning"}/>
+                            </Col>
+                        </Row>
+                    </Accordion.Header>
                     <Accordion.Body>
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="2">
-                    <Accordion.Header>Frame Config</Accordion.Header>
+                    <Accordion.Header>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto">
+                                Frame Config
+                            </Col>
+                            <Col md="auto" hidden={!asic_init}>
+                                <StatusBadge label={adapterEndpoint?.data?.application?.asic_settings?.frame_length} type={adapterEndpoint?.data?.application?.asic_settings?.frame_length ? "primary" : "warning"}/>
+                            </Col>
+                            <Col md="auto" hidden={!asic_init}>
+                                <StatusBadge label={adapterEndpoint?.data?.application?.asic_settings?.integration_time} type={adapterEndpoint?.data?.application?.asic_settings?.integration_time ? "primary" : "warning"}/>
+                            </Col>
+                        </Row>
+                    </Accordion.Header>
                     <Accordion.Body>
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="3">
-                    <Accordion.Header>VCAL Input</Accordion.Header>
+                    <Accordion.Header>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto">
+                                VCAL Input
+                            </Col>
+                            <Col md="auto" hidden={!power_board_init}>
+                                <StatusBadge label={adapterEndpoint?.data?.application?.vcal + " v"} type={adapterEndpoint?.data?.application?.vcal ? "primary" : "warning"}/>
+                            </Col>
+                        </Row>
+                    </Accordion.Header>
                     <Accordion.Body>
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="4">
                     <Accordion.Header>Test Pattern</Accordion.Header>
+                    <Accordion.Body>
+                    </Accordion.Body>
+                </Accordion.Item>
+                <Accordion.Item eventKey="5">
+                    <Accordion.Header>Channel Config</Accordion.Header>
                     <Accordion.Body>
                     </Accordion.Body>
                 </Accordion.Item>
@@ -326,40 +375,53 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
 
     return (
         <TitleCard title="System Init">
-            <Stack gap={1}>
+            <Stack gap={1} direction="horizontal">
+                <Stack gap={1}>
+                    <Row>
+                        <Col>
+                            <ProgressBar now={sys_init_progress_perc} label={sys_init_state} variant={sys_init_err ? "danger" : sys_init_progress_perc === 100 ? "success" : "primary"} striped={sys_init_state !== sys_init_state_target ? true : false} animated={sys_init_state !== sys_init_state_target ? true : false}/>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <Alert variant="danger" show={sys_init_err}>
+                                {sys_init_err}
+                            </Alert>
+                        </Col>
+                    </Row>
+                        <Col>
+                            placeholder -system status info
+                        </Col>
+                    <Row>
+                    </Row>
+                    <Row>
+                        <Col md="auto">
+                            <PowerBoardInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="PWR_DONE" variant={power_board_init ? "success" : "outline-primary"}>
+                                {power_board_init && <Icon.Repeat size={20} />}
+                                {sys_init_state === "PWR_INIT" && <Spinner animation="border" size="sm" />}
+                                {power_board_init ? " Re-init Power Board" : " Init Power Board"}
+                            </PowerBoardInitEndpointButton>
+                        </Col>
+                        <Col md="auto">
+                            <COBInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="COB_DONE" variant={cob_init ? "success" : "outline-primary"}>
+                                {cob_init && <Icon.Repeat size={20} />}
+                                {sys_init_state === "COB_INIT" && <Spinner animation="border" size="sm" />}
+                                {cob_init ? " Re-init COB" : " Init COB"}
+                            </COBInitEndpointButton>
+                        </Col>
+                        <Col md="auto">
+                            <ASICInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="ASIC_DONE" variant={asic_init ? "success" : "outline-primary"}>
+                                {asic_init && <Icon.Repeat size={20} />}
+                                {sys_init_state === "ASIC_INIT" && <Spinner animation="border" size="sm" />}
+                                {asic_init ? " Re-init ASIC" : " Init ASIC"}
+                            </ASICInitEndpointButton>
+                        </Col>
+                    </Row>
+                </Stack>
+                <div className="vr" />
                 <Row>
-                    <Col>
-                        <ProgressBar now={sys_init_progress_perc} label={sys_init_state} variant={sys_init_err ? "danger" : sys_init_progress_perc === 100 ? "success" : "primary"} striped={sys_init_state !== sys_init_state_target ? true : false} animated={sys_init_state !== sys_init_state_target ? true : false}/>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        <Alert variant="danger" show={sys_init_err}>
-                            {sys_init_err}
-                        </Alert>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col md={6}>
-                        <PowerBoardInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="PWR_DONE" variant={power_board_init ? "success" : "outline-primary"}>
-                            {power_board_init && <Icon.Repeat size={20} />}
-                            {sys_init_state === "PWR_INIT" && <Spinner animation="border" size="sm" />}
-                            {power_board_init ? " Re-init Power Board" : " Init Power Board"}
-                        </PowerBoardInitEndpointButton>
-                    </Col>
-                    <Col md={4}>
-                        <COBInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="COB_DONE" variant={cob_init ? "success" : "outline-primary"}>
-                            {cob_init && <Icon.Repeat size={20} />}
-                            {sys_init_state === "COB_INIT" && <Spinner animation="border" size="sm" />}
-                            {cob_init ? " Re-init COB" : " Init COB"}
-                        </COBInitEndpointButton>
-                    </Col>
-                    <Col md={2}>
-                        <ASICInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="ASIC_DONE" variant={asic_init ? "success" : "outline-primary"}>
-                            {asic_init && <Icon.Repeat size={20} />}
-                            {sys_init_state === "ASIC_INIT" && <Spinner animation="border" size="sm" />}
-                            {asic_init ? " Re-init ASIC" : " Init ASIC"}
-                        </ASICInitEndpointButton>
+                    <Col md="auto">
+                        <SyncEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="SYNC" fullpath="application/system_state/SYNC" checked={adapterEndpoint.data.application?.system_state?.SYNC} value={adapterEndpoint.data.application?.system_state?.SYNC} />
                     </Col>
                 </Row>
             </Stack>
@@ -367,20 +429,108 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
     )
 }
 
+const SaveVCONTEndpointButton = WithEndpoint(Button);
+const HVEnableEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
+const HVAutoEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
+const DirectVCONTEndpointButton = WithEndpoint(Button);
+const BiasTargetEndpointButton = WithEndpoint(Button);
 function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled}) {
+    const [vcont_direct, set_vcont_direct] = useState(null);
+    const [target_bias, set_target_bias] = useState(null);
+
     if (!loki_connection_state) {
         return (<></>)
     }
 
-    let hvinfo = adapterEndpoint.data?.application?.HV;
-    console.log(hvinfo);
+    let hvinfo = adapterEndpoint?.data?.application?.HV;
+
+    const update_direct_vcont = (event) => {
+        set_vcont_direct(+event.target.value);
+    }
+
+    const update_target_bias = (event) => {
+        set_target_bias(+event.target.value);
+    }
 
     return (
-        <Col class="col align-self-center">
-            <TitleCard title="High Voltage Control">
-                High Voltage Stuff
-            </TitleCard>
-        </Col>
+        <Container>
+            <Row className="justify-content-md-center">
+                <Alert variant="warning" show={!hvinfo?.control_voltage_save}>
+                    Warning: Control voltage unsaved: The current wiper setting is not saved to the potentiometer EEPROM, and will not be preserved after a power cycle.
+                </Alert>
+                <Alert variant="warning" show={hvinfo?.control_voltage_overridden}>
+                    Warning: Control voltage overridden in configuration file: value saved in EEPROM will not be used.
+                </Alert>
+                <Alert variant="danger" show={hvinfo?.monitor_control_mismatch_detected}>
+                    Warning: Control voltage and monitor voltage significantly mismatched. This could mean ADC, potentiometer, or HV module is faulty.
+                </Alert>
+            </Row>
+            <Row>
+                <Col>
+                    <Row>
+                        <Col md="auto">
+                            <HVEnableEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="HV Enable" fullpath="application/HV/ENABLE" checked={hvinfo?.ENABLE} value={hvinfo?.ENABLE} />
+                        </Col>
+                        <Col md="auto">
+                            <HVAutoEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Auto Set Control Voltage" fullpath="application/HV/AUTO_MODE_EN" checked={hvinfo?.AUTO_MODE_EN} value={hvinfo?.AUTO_MODE_EN} />
+                        </Col>
+                    </Row>
+                </Col>
+                <Col md="auto">
+                    <TitleCard title="Control Voltage">
+                        <Row>
+                            <Col md={8}>
+                                <InputGroup>
+                                    <InputGroup.Text>Target Bias</InputGroup.Text>
+                                    <Form.Control type="number" onChange={update_target_bias}/>
+                                    <InputGroup.Text>V</InputGroup.Text>
+                                    <BiasTargetEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/HV/target_bias" value={target_bias}>Set</BiasTargetEndpointButton>
+                                </InputGroup>
+                            </Col>
+                            <Col md="auto">
+                                <StatusBox label="Target Bias">{hvinfo?.target_bias?.toFixed(2) + " v"}</StatusBox>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col md={8} hidden={hvinfo?.AUTO_MODE_EN}>
+                                <InputGroup>
+                                    <InputGroup.Text>Control</InputGroup.Text>
+                                    <Form.Control type="number" onChange={update_direct_vcont}/>
+                                    <InputGroup.Text>V</InputGroup.Text>
+                                    <DirectVCONTEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/HV/control_voltage" value={vcont_direct}>Set</DirectVCONTEndpointButton>
+                                </InputGroup>
+                            </Col>
+                            <Col md={6} hidden={!hvinfo?.AUTO_MODE_EN}>
+                                <StatusBox label="PID Status">{hvinfo?.PID_STATUS}</StatusBox>
+                            </Col>
+                            <Col >
+                                <StatusBox label="Control">{hvinfo?.control_voltage?.toFixed(2) + " v"}</StatusBox>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <SaveVCONTEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/HV/control_voltage_save" value="" variant={hvinfo?.control_voltage_save ? "success" : "danger"}>
+                                {!hvinfo?.control_voltage_save && <Spinner animation="grow" size="sm" />}
+                                {hvinfo?.control_voltage_save ? " Saved " : " Save "}
+                                {hvinfo?.control_voltage_save ? <Icon.Check size={20}/> : <></>}
+                                {!hvinfo?.control_voltage_save && <Spinner animation="grow" size="sm" />}
+                            </SaveVCONTEndpointButton>
+                        </Row>
+                    </TitleCard>
+                </Col>
+                <Col>
+                    <TitleCard title="Bias Readback">
+                        <Row>
+                            <Col md="auto">
+                                <StatusBox label="ADC">{hvinfo?.monitor_voltage?.toFixed(2) + " v"}</StatusBox>
+                            </Col>
+                            <Col md="auto">
+                                <StatusBox label="Derived Bias">{hvinfo?.readback_bias?.toFixed(0) + " v"}</StatusBox>
+                            </Col>
+                        </Row>
+                    </TitleCard>
+                </Col>
+            </Row>
+        </Container>
     )
 }
 
