@@ -5,12 +5,12 @@ import {useState} from 'react';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch} from 'odin-react';
+import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch, StatusBox, OdinGraph} from 'odin-react';
 import 'odin-react/dist/index.css'
 
 import {LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, LOKICarrierSummaryCard, StatusBadge} from './Loki.js'
 
-import {Row, Col, Container, ProgressBar, Alert, Button, Spinner, Stack} from 'react-bootstrap'
+import {Row, Col, Container, ProgressBar, Alert, Button, Spinner, Stack, Accordion, InputGroup, Form} from 'react-bootstrap'
 import * as Icon from 'react-bootstrap-icons';
 
 function HMHz() {
@@ -20,6 +20,7 @@ function HMHz() {
 
     const [loki_connection_ok, set_loki_connection_ok] = useState(true);
     const [foundLoopException, setFoundLoopException] = useState(false);
+    const [all_firefly_channels_enabled, set_all_firefly_channels_enabled] = useState(false);
 
     let power_board_present = periodicEndpoint.data?.control?.presence_detection.backplane;
     let power_board_init = periodicEndpoint.data?.application?.system_state.POWER_BOARD_INIT;
@@ -31,6 +32,8 @@ function HMHz() {
     let sys_init_err = periodicEndpoint?.data?.application?.system_state.ENABLE_STATE_ERROR;
     let hv_enabled = periodicEndpoint?.data?.application?.HV.ENABLE;
     let hv_saved = periodicEndpoint?.data?.application?.HV?.control_voltage_save;
+    let hv_overridden = periodicEndpoint?.data?.application?.HV?.control_voltage_overridden;
+    let hv_mismatch = periodicEndpoint?.data?.application?.HV?.monitor_control_mismatch_detected;
     let hv_bias_readback = Math.round(periodicEndpoint?.data?.application?.HV.readback_bias);
     let power_board_temp = periodicEndpoint?.data?.environment?.temperature?.POWER_BOARD;
     let asic_temp = periodicEndpoint?.data?.environment?.temperature?.ASIC;
@@ -40,6 +43,8 @@ function HMHz() {
     let fastdata_en = periodicEndpoint?.data?.application?.system_state.ASIC_FASTDATA_EN;
     let regs_en = periodicEndpoint?.data?.application?.system_state.REGS_EN;
     let asic_sync = periodicEndpoint?.data?.application?.system_state.SYNC;
+    let ff1_pn = periodicEndpoint?.data?.application?.firefly?.ch00to09?.PARTNUMBER;
+    let ff2_pn = periodicEndpoint?.data?.application?.firefly?.ch10to19?.PARTNUMBER;
 
     return (
         <OdinApp title="HEXITEC-MHz UI" navLinks={["HEXITEC-MHz Control", "Debug Info", "LOKI System"]}>
@@ -47,22 +52,36 @@ function HMHz() {
                 <Row>
                     <LOKIConnectionAlert adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} set_loki_connection_state={set_loki_connection_ok} />
                 </Row>
-                <Row>
-                    <Col md={2}>
+                <Row className="justify-content-md-center">
+                    <Col sm={12} xl={4} xxl={2}>
                         <LOKICarrierSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} foundLoopException={foundLoopException}/>
                     </Col>
-                    <Col md={3}>
-                        <HMHzPowerBoardSummaryCard loki_connection_state={loki_connection_ok} power_board_present={power_board_present} power_board_init={power_board_init} power_board_temp={power_board_temp} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} regs_en={regs_en} />
+                    <Col sm={12} xl={4} xxl="auto">
+                        <HMHzPowerBoardSummaryCard loki_connection_state={loki_connection_ok} power_board_present={power_board_present} power_board_init={power_board_init} power_board_temp={power_board_temp} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} regs_en={regs_en} />
                     </Col>
-                    <Col md={3}>
-                        <HMHzCOBSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_present={cob_present} cob_init={cob_init} asic_temp={asic_temp} asic_en={asic_en} asic_init={asic_init} fastdata_init={fastdata_init} fastdata_en={fastdata_en} asic_sync={asic_sync} />
+                    <Col sm={12} xl={4} xxl={3}>
+                        <HMHzCOBSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_present={cob_present} cob_init={cob_init} asic_temp={asic_temp} asic_en={asic_en} asic_init={asic_init} fastdata_init={fastdata_init} fastdata_en={fastdata_en} asic_sync={asic_sync} ff1_pn={ff1_pn} ff2_pn={ff2_pn} />
                     </Col>
-                    <Col>
+                    <Col sm="auto" xxl={5}>
                         <HMHzStateControl adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} sys_init_state={sys_init_state} sys_init_state_target={sys_init_state_target} sys_init_progress_perc={sys_init_progress} sys_init_err={sys_init_err} power_board_init={power_board_init} cob_init={cob_init} asic_init={asic_init}/>
                     </Col>
                 </Row>
                 <Row>
-                    <HMHzHVControl adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok}/>
+                    <Col xxl={8} lg={12}>
+                        <TitleCard title="Slow Readout">
+                            <Row>
+                                <Col>
+                                    <HMHzReadoutRender adapterEndpoint={periodicEndpoint} asic_init={asic_init} fakedata={false}/>
+                                </Col>
+                                <Col md="auto">
+                                    Settings
+                                </Col>
+                            </Row>
+                        </TitleCard>
+                    </Col>
+                    <Col xxl={4} lg="auto">
+                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled}/>
+                    </Col>
                 </Row>
             </Container>
             <Container fluid>
@@ -102,7 +121,112 @@ function HMHz() {
     )
 }
 
-function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, power_board_init, power_board_temp, hv_enabled, hv_bias_readback, hv_saved, regs_en}) {
+function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled}) {
+    if (!loki_connection_state) {
+        return (<></>)
+    }
+
+    return (
+        <>
+            <Accordion >
+                <Accordion.Item eventKey="0">
+                    <Accordion.Button disabled={false}>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto">
+                                High Voltage Bias
+                            </Col>
+                            <Col md="auto" hidden={!power_board_init}>
+                                <StatusBadge label={hv_enabled ? "ON" : "Off"} type={hv_enabled ? "success" : "warning"}/>
+                            </Col>
+                            <Col md="auto" hidden={!power_board_init}>
+                                <StatusBadge label={Math.round(hv_bias_readback) + " v"} type={hv_enabled ? "success" : "warning"} />
+                            </Col>
+                            <Col md="auto" hidden={!power_board_init}>
+                                <StatusBadge label={hv_saved ? "" : (<><Icon.Save /><span>&nbsp;unsaved</span></>)} type="danger" />
+                            </Col>
+                            <Col md="auto" hidden={!power_board_init}>
+                                <StatusBadge label={hv_overridden ? (<><Icon.Save /><span>&nbsp;overridden</span></>) : ""} type="danger" />
+                            </Col>
+                            <Col md="auto" hidden={!power_board_init}>
+                                <StatusBadge label={hv_mismatch ? (<><Icon.ExclamationTriangleFill /><span>&nbsp;mismatch</span></>) : ""} type="danger" />
+                            </Col>
+                        </Row>
+                    </Accordion.Button>
+                    <Accordion.Body>
+                        <HMHzHVControl adapterEndpoint={adapterEndpoint} loki_connection_state={loki_connection_state} power_board_init={power_board_init} />
+                    </Accordion.Body>
+                </Accordion.Item>
+                <Accordion.Item eventKey="1">
+                    <Accordion.Header>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto">
+                                Pre-Amplifier
+                            </Col>
+                            <Col md="auto" hidden={!asic_init}>
+                                <StatusBadge label={adapterEndpoint?.data?.application?.asic_settings?.feedback_capacitance + " fF"} type={adapterEndpoint?.data?.application?.asic_settings?.feedback_capacitance ? "primary" : "warning"}/>
+                            </Col>
+                        </Row>
+                    </Accordion.Header>
+                    <Accordion.Body>
+                    </Accordion.Body>
+                </Accordion.Item>
+                <Accordion.Item eventKey="2">
+                    <Accordion.Header>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto">
+                                Frame Config
+                            </Col>
+                            <Col md="auto" hidden={!asic_init}>
+                                <StatusBadge label={adapterEndpoint?.data?.application?.asic_settings?.frame_length} type={adapterEndpoint?.data?.application?.asic_settings?.frame_length ? "primary" : "warning"}/>
+                            </Col>
+                            <Col md="auto" hidden={!asic_init}>
+                                <StatusBadge label={adapterEndpoint?.data?.application?.asic_settings?.integration_time} type={adapterEndpoint?.data?.application?.asic_settings?.integration_time ? "primary" : "warning"}/>
+                            </Col>
+                        </Row>
+                    </Accordion.Header>
+                    <Accordion.Body>
+                    </Accordion.Body>
+                </Accordion.Item>
+                <Accordion.Item eventKey="3">
+                    <Accordion.Header>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto">
+                                VCAL Input
+                            </Col>
+                            <Col md="auto" hidden={!power_board_init}>
+                                <StatusBadge label={adapterEndpoint?.data?.application?.vcal + " v"} type={adapterEndpoint?.data?.application?.vcal ? "primary" : "warning"}/>
+                            </Col>
+                        </Row>
+                    </Accordion.Header>
+                    <Accordion.Body>
+                    </Accordion.Body>
+                </Accordion.Item>
+                <Accordion.Item eventKey="4">
+                    <Accordion.Header>Test Pattern</Accordion.Header>
+                    <Accordion.Body>
+                    </Accordion.Body>
+                </Accordion.Item>
+                <Accordion.Item eventKey="5">
+                    <Accordion.Header>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto">
+                                Channel Config
+                            </Col>
+                            <Col md="auto" hidden={all_firefly_channels_enabled || !asic_init}>
+                                <StatusBadge label={(<><Icon.ExclamationTriangleFill /><span>&nbsp;Some FireFly Channels Disabled</span></>)} type="danger"/>
+                            </Col>
+                        </Row>
+                    </Accordion.Header>
+                    <Accordion.Body>
+                        <HMHzChannelControl adapterEndpoint={adapterEndpoint} loki_connection_state={loki_connection_state} cob_init={cob_init} asic_init={asic_init} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled}/>
+                    </Accordion.Body>
+                </Accordion.Item>
+            </Accordion>
+        </>
+    )
+}
+
+function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, power_board_init, power_board_temp, hv_enabled, hv_bias_readback, regs_en}) {
     if (!loki_connection_state) {
         return (<></>)
     }
@@ -130,9 +254,6 @@ function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, 
                     </Col>
                     <Col md="auto">
                         <StatusBadge label={Math.round(hv_bias_readback) + " v"} type={hv_enabled ? "success" : "warning"} />
-                    </Col>
-                    <Col md="auto">
-                        <StatusBadge label={hv_saved ? "" : (<><Icon.Save /><span>&nbsp;unsaved</span></>)} type="danger" />
                     </Col>
                 </Row>
                 <Row>
@@ -170,7 +291,7 @@ function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, 
 }
 
 const SyncEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
-function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present, cob_init, asic_temp, asic_en, asic_init, fastdata_init, fastdata_en, asic_sync}) {
+function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present, cob_init, asic_temp, asic_en, asic_init, fastdata_init, fastdata_en, asic_sync, ff1_pn, ff2_pn}) {
     if (!loki_connection_state) {
         return (<></>)
     }
@@ -206,28 +327,28 @@ function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present
                 </Row>
                 <Row>
                     <Col md={1}>
-                        <Icon.Cpu />
-                    </Col>
-                    <Col md={4}>
-                        ASIC SYNC:
-                    </Col>
-                    <Col md="auto">
-                        <StatusBadge label={asic_sync ? "High" : "Low"} type={asic_sync ? "success" : "warning"} />
-                        <SyncEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Manual" fullpath="application/system_state/SYNC" checked={adapterEndpoint.data.application?.system_state?.SYNC} value={adapterEndpoint.data.application?.system_state?.SYNC} />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col md={1}>
                         <Icon.BoxArrowRight />
                     </Col>
                     <Col md={4}>
                         Fast Data:
                     </Col>
                     <Col md="auto">
-                        <StatusBadge label={fastdata_en ? "Enabled" : "Disabled"} type={fastdata_en ? "success" : "danger"} />
+                        <StatusBadge label={fastdata_en ? "" : "Disabled"} type={fastdata_en ? "success" : "danger"} />
                     </Col>
                     <Col md="auto">
-                        <StatusBadge label={fastdata_init ? "Initialised" : "Not Initialised"} type={fastdata_init ? "success" : "warning"} />
+                        {fastdata_en && <StatusBadge label={fastdata_init ? "Initialised" : "Not Initialised"} type={fastdata_init ? "success" : "warning"} />}
+                    </Col>
+                </Row>
+                <Row>
+                    <Col md={1}>
+                    </Col>
+                    <Col md="auto">
+                        FF1
+                        <StatusBadge label={ff1_pn ? ff1_pn : "No Module"} type={ff1_pn ? "success" : "danger"} />
+                    </Col>
+                    <Col md="auto">
+                        FF2
+                        <StatusBadge label={ff2_pn ? ff2_pn : "No Module"} type={ff2_pn ? "success" : "danger"} />
                     </Col>
                 </Row>
             </Container>
@@ -265,40 +386,53 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
 
     return (
         <TitleCard title="System Init">
-            <Stack gap={1}>
+            <Stack gap={1} direction="horizontal">
+                <Stack gap={1}>
+                    <Row>
+                        <Col>
+                            <ProgressBar now={sys_init_progress_perc} label={sys_init_state} variant={sys_init_err ? "danger" : sys_init_progress_perc === 100 ? "success" : "primary"} striped={sys_init_state !== sys_init_state_target ? true : false} animated={sys_init_state !== sys_init_state_target ? true : false}/>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <Alert variant="danger" show={sys_init_err}>
+                                {sys_init_err}
+                            </Alert>
+                        </Col>
+                    </Row>
+                        <Col>
+                            placeholder -system status info
+                        </Col>
+                    <Row>
+                    </Row>
+                    <Row>
+                        <Col md="auto">
+                            <PowerBoardInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="PWR_DONE" variant={power_board_init ? "success" : "outline-primary"}>
+                                {power_board_init && <Icon.Repeat size={20} />}
+                                {sys_init_state === "PWR_INIT" && <Spinner animation="border" size="sm" />}
+                                {power_board_init ? " Re-init Power Board" : " Init Power Board"}
+                            </PowerBoardInitEndpointButton>
+                        </Col>
+                        <Col md="auto">
+                            <COBInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="COB_DONE" variant={cob_init ? "success" : "outline-primary"}>
+                                {cob_init && <Icon.Repeat size={20} />}
+                                {sys_init_state === "COB_INIT" && <Spinner animation="border" size="sm" />}
+                                {cob_init ? " Re-init COB" : " Init COB"}
+                            </COBInitEndpointButton>
+                        </Col>
+                        <Col md="auto">
+                            <ASICInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="ASIC_DONE" variant={asic_init ? "success" : "outline-primary"}>
+                                {asic_init && <Icon.Repeat size={20} />}
+                                {sys_init_state === "ASIC_INIT" && <Spinner animation="border" size="sm" />}
+                                {asic_init ? " Re-init ASIC" : " Init ASIC"}
+                            </ASICInitEndpointButton>
+                        </Col>
+                    </Row>
+                </Stack>
+                <div className="vr" />
                 <Row>
-                    <Col>
-                        <ProgressBar now={sys_init_progress_perc} label={sys_init_state} variant={sys_init_err ? "danger" : sys_init_progress_perc === 100 ? "success" : "primary"} striped={sys_init_state !== sys_init_state_target ? true : false} animated={sys_init_state !== sys_init_state_target ? true : false}/>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        <Alert variant="danger" show={sys_init_err}>
-                            {sys_init_err}
-                        </Alert>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col md={6}>
-                        <PowerBoardInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="PWR_DONE" variant={power_board_init ? "success" : "outline-primary"}>
-                            {power_board_init && <Icon.Repeat size={20} />}
-                            {sys_init_state === "PWR_INIT" && <Spinner animation="border" size="sm" />}
-                            {power_board_init ? " Re-init Power Board" : " Init Power Board"}
-                        </PowerBoardInitEndpointButton>
-                    </Col>
-                    <Col md={4}>
-                        <COBInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="COB_DONE" variant={cob_init ? "success" : "outline-primary"}>
-                            {cob_init && <Icon.Repeat size={20} />}
-                            {sys_init_state === "COB_INIT" && <Spinner animation="border" size="sm" />}
-                            {cob_init ? " Re-init COB" : " Init COB"}
-                        </COBInitEndpointButton>
-                    </Col>
-                    <Col md={2}>
-                        <ASICInitEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ENABLE_STATE" value="ASIC_DONE" variant={asic_init ? "success" : "outline-primary"}>
-                            {asic_init && <Icon.Repeat size={20} />}
-                            {sys_init_state === "ASIC_INIT" && <Spinner animation="border" size="sm" />}
-                            {asic_init ? " Re-init ASIC" : " Init ASIC"}
-                        </ASICInitEndpointButton>
+                    <Col md="auto">
+                        <SyncEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="SYNC" fullpath="application/system_state/SYNC" checked={adapterEndpoint.data.application?.system_state?.SYNC} value={adapterEndpoint.data.application?.system_state?.SYNC} />
                     </Col>
                 </Row>
             </Stack>
@@ -306,20 +440,295 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
     )
 }
 
-function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled}) {
-    if (!loki_connection_state) {
+const SaveVCONTEndpointButton = WithEndpoint(Button);
+const HVEnableEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
+const HVAutoEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
+const DirectVCONTEndpointButton = WithEndpoint(Button);
+const BiasTargetEndpointButton = WithEndpoint(Button);
+function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled, power_board_init}) {
+    const [vcont_direct, set_vcont_direct] = useState(null);
+    const [target_bias, set_target_bias] = useState(null);
+
+    if (!loki_connection_state || !power_board_init) {
         return (<></>)
     }
 
-    let hvinfo = adapterEndpoint.data?.application?.HV;
-    console.log(hvinfo);
+    let hvinfo = adapterEndpoint?.data?.application?.HV;
+
+    const update_direct_vcont = (event) => {
+        set_vcont_direct(+event.target.value);
+    }
+
+    const update_target_bias = (event) => {
+        set_target_bias(+event.target.value);
+    }
 
     return (
-        <Col class="col align-self-center">
-            <TitleCard title="High Voltage Control">
-                High Voltage Stuff
-            </TitleCard>
-        </Col>
+        <Container>
+            <Row className="justify-content-md-center">
+                <Alert variant="warning" show={!hvinfo?.control_voltage_save}>
+                    Warning: Control voltage unsaved: The current wiper setting is not saved to the potentiometer EEPROM, and will not be preserved after a power cycle.
+                </Alert>
+                <Alert variant="warning" show={hvinfo?.control_voltage_overridden}>
+                    Warning: Control voltage overridden in configuration file: value saved in EEPROM will not be used.
+                </Alert>
+                <Alert variant="danger" show={hvinfo?.monitor_control_mismatch_detected}>
+                    Warning: Control voltage and monitor voltage significantly mismatched. This could mean ADC, potentiometer, or HV module is faulty.
+                </Alert>
+            </Row>
+            <Row>
+                <Col>
+                    <Row>
+                        <Col md="auto">
+                            <HVEnableEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="HV Enable" fullpath="application/HV/ENABLE" checked={hvinfo?.ENABLE} value={hvinfo?.ENABLE} />
+                        </Col>
+                        <Col md="auto">
+                            <HVAutoEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Auto Set Control Voltage" fullpath="application/HV/AUTO_MODE_EN" checked={hvinfo?.AUTO_MODE_EN} value={hvinfo?.AUTO_MODE_EN} />
+                        </Col>
+                    </Row>
+                </Col>
+                <Col md="auto">
+                    <TitleCard title="Control Voltage">
+                        <Row>
+                            <Col md={8}>
+                                <InputGroup>
+                                    <InputGroup.Text>Target Bias</InputGroup.Text>
+                                    <Form.Control type="number" onChange={update_target_bias}/>
+                                    <InputGroup.Text>V</InputGroup.Text>
+                                    <BiasTargetEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/HV/target_bias" value={target_bias}>Set</BiasTargetEndpointButton>
+                                </InputGroup>
+                            </Col>
+                            <Col md="auto">
+                                <StatusBox label="Target Bias">{hvinfo?.target_bias?.toFixed(2) + " v"}</StatusBox>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col md={8} hidden={hvinfo?.AUTO_MODE_EN}>
+                                <InputGroup>
+                                    <InputGroup.Text>Control</InputGroup.Text>
+                                    <Form.Control type="number" onChange={update_direct_vcont}/>
+                                    <InputGroup.Text>V</InputGroup.Text>
+                                    <DirectVCONTEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/HV/control_voltage" value={vcont_direct}>Set</DirectVCONTEndpointButton>
+                                </InputGroup>
+                            </Col>
+                            <Col md={6} hidden={!hvinfo?.AUTO_MODE_EN}>
+                                <StatusBox label="PID Status">{hvinfo?.PID_STATUS}</StatusBox>
+                            </Col>
+                            <Col >
+                                <StatusBox label="Control">{hvinfo?.control_voltage?.toFixed(2) + " v"}</StatusBox>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <SaveVCONTEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/HV/control_voltage_save" value="" variant={hvinfo?.control_voltage_save ? "success" : "danger"}>
+                                {!hvinfo?.control_voltage_save && <Spinner animation="grow" size="sm" />}
+                                {hvinfo?.control_voltage_save ? " Saved " : " Save "}
+                                {hvinfo?.control_voltage_save ? <Icon.Check size={20}/> : <></>}
+                                {!hvinfo?.control_voltage_save && <Spinner animation="grow" size="sm" />}
+                            </SaveVCONTEndpointButton>
+                        </Row>
+                    </TitleCard>
+                </Col>
+                <Col>
+                    <TitleCard title="Bias Readback">
+                        <Row>
+                            <Col md="auto">
+                                <StatusBox label="ADC">{hvinfo?.monitor_voltage?.toFixed(2) + " v"}</StatusBox>
+                            </Col>
+                            <Col md="auto">
+                                <StatusBox label="Derived Bias">{hvinfo?.readback_bias?.toFixed(0) + " v"}</StatusBox>
+                            </Col>
+                        </Row>
+                    </TitleCard>
+                </Col>
+            </Row>
+        </Container>
+    )
+}
+
+function HMHzChannelControl({adapterEndpoint, loki_connection_state, cob_init, asic_init, set_all_firefly_channels_enabled}) {
+    // This will display information relating to the fast data lanes, related to actual ASIC lane numbering.
+    // Primarily will be focussed on on-COB devices that affect the signal (FireFly channel enable, retimer
+    // settings etc) but could at some point feature ASIC settings such as CML enable.
+
+    if (!cob_init) {
+        return (<></>);
+    }
+
+    // Lanes are taken from firefly because they all exist for firefly. Some do not exist
+    // for the retimer (the bypass, for example).
+    let ff_laneinfo = adapterEndpoint.data?.application?.firefly?.CHANNELS;
+    let retimer_laneinfo = adapterEndpoint.data?.application?.retimer?.CHANNELS;    // May or may not be present
+
+    // Assume true unless we find a disabled channel, or can't read back the channel status
+    let all_firefly_channels_enabled = true;
+
+    let lane_rows;
+    if (ff_laneinfo !== undefined ) {
+        let lane_names = Object.keys(ff_laneinfo);
+        lane_rows = lane_names.map((lane_name) => {
+            let ff_en = ff_laneinfo[lane_name].Enabled;
+            if (ff_en === undefined || ff_en === false){
+                all_firefly_channels_enabled = false;
+            }
+            //const ffEndpointToggleSwitch = WithEndpoint(ToggleSwitch);      // Dynamically generate enable switches for current channel
+            let ff_en_col = (
+                <td>
+                    <StatusBadge label={ff_en ? 'Enabled' : 'Disabled'} type={ff_en ? 'success' : 'danger'}/>
+                </td>
+            )
+
+            let retimer_lock_col = (<></>);
+            let retimer_passthrough_col = (<></>);
+            if (retimer_laneinfo !== undefined) {
+                let retimer_lock = lane_name in retimer_laneinfo ? retimer_laneinfo[lane_name].CDR_Locked : null;
+                retimer_lock_col = (
+                    <td>
+                        <StatusBadge label={retimer_lock === null ? '' : (retimer_lock ? 'Locked' : 'No')} type={retimer_lock ? 'success' : 'danger'}/>
+                    </td>
+                )
+
+                let retimer_passthrough = lane_name in retimer_laneinfo ? retimer_laneinfo[lane_name].Unlocked_Passthrough : null;
+                retimer_passthrough_col = (
+                    <td>
+                        <StatusBadge label={retimer_passthrough === null ? '' : (retimer_passthrough ? 'Yes' : 'No')} type={retimer_passthrough ? 'success' : 'danger'}/>
+                    </td>
+                )
+            }
+
+            return (
+                <tr>
+                    <th scope="row">{lane_name}</th>
+                    {ff_en_col}
+                    {retimer_lock_col}
+                    {retimer_passthrough_col}
+                </tr>
+            )
+        });
+    } else {
+        lane_rows = null;
+        all_firefly_channels_enabled = false;
+    }
+
+    set_all_firefly_channels_enabled(all_firefly_channels_enabled);
+
+    return (
+        <Container>
+            <Row className="justify-content-md-center">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Lane Name</th>
+                            <th scope="col">FireFly Output</th>
+                            {retimer_laneinfo !== undefined && <th scope="col">Retimer Locked</th>}
+                            {retimer_laneinfo !== undefined && <th scope="col">Retimer Passthrough</th>}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {lane_rows}
+                    </tbody>
+                </table>
+            </Row>
+        </Container>
+    )
+}
+
+function HMHzReadoutRender({adapterEndpoint, asic_init, fakedata=false}) {
+    let image_dat = adapterEndpoint.data?.application?.readout?.imgdat;
+    if (fakedata) {
+        image_dat = [
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+        ];
+    }
+
+    if (asic_init) {
+        return (<></>);
+    }
+
+    return (
+        <Row>
+            <Col>
+                {image_dat !== undefined && <OdinGraph title='HEXITEC-MHz Sensor SPI Readback' type='heatmap' prop_data={image_dat} colorscale='viridis' />}
+            </Col>
+        </Row>
     )
 }
 
