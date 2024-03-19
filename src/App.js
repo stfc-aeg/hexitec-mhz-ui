@@ -5,7 +5,7 @@ import {useState} from 'react';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch, StatusBox, EndpointButton, OdinGraph} from 'odin-react';
+import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch, StatusBox, OdinGraph} from 'odin-react';
 import 'odin-react/dist/index.css'
 
 import {LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, LOKICarrierSummaryCard, StatusBadge} from './Loki.js'
@@ -563,17 +563,16 @@ function HMHzChannelControl({adapterEndpoint, loki_connection_state, cob_init, a
     let all_firefly_channels_enabled = true;
 
     let lane_rows;
-    if (typeof ff_laneinfo !== undefined ) {
+    if (ff_laneinfo !== undefined ) {
         let lane_names = Object.keys(ff_laneinfo);
         lane_rows = lane_names.map((lane_name) => {
             let ff_en = ff_laneinfo[lane_name].Enabled;
             if (ff_en === undefined || ff_en === false){
                 all_firefly_channels_enabled = false;
             }
-            const ffEndpointToggleSwitch = WithEndpoint(ToggleSwitch);      // Dynamically generate enable switches for current channel
+            //const ffEndpointToggleSwitch = WithEndpoint(ToggleSwitch);      // Dynamically generate enable switches for current channel
             let ff_en_col = (
                 <td>
-                    <ffEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Enable" fullpath={"application/firefly/CHANNELS/"+lane_name} checked={ff_en} value={ff_en} />
                     <StatusBadge label={ff_en ? 'Enabled' : 'Disabled'} type={ff_en ? 'success' : 'danger'}/>
                 </td>
             )
@@ -582,14 +581,14 @@ function HMHzChannelControl({adapterEndpoint, loki_connection_state, cob_init, a
             let retimer_passthrough_col = (<></>);
             if (retimer_laneinfo !== undefined) {
                 let retimer_lock = lane_name in retimer_laneinfo ? retimer_laneinfo[lane_name].CDR_Locked : null;
-                let retimer_lock_col = (
+                retimer_lock_col = (
                     <td>
                         <StatusBadge label={retimer_lock === null ? '' : (retimer_lock ? 'Locked' : 'No')} type={retimer_lock ? 'success' : 'danger'}/>
                     </td>
                 )
 
                 let retimer_passthrough = lane_name in retimer_laneinfo ? retimer_laneinfo[lane_name].Unlocked_Passthrough : null;
-                let retimer_passthrough_col = (
+                retimer_passthrough_col = (
                     <td>
                         <StatusBadge label={retimer_passthrough === null ? '' : (retimer_passthrough ? 'Yes' : 'No')} type={retimer_passthrough ? 'success' : 'danger'}/>
                     </td>
