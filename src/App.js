@@ -5,7 +5,7 @@ import {useState} from 'react';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch, StatusBox, EndpointButton} from 'odin-react';
+import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch, StatusBox, EndpointButton, OdinGraph} from 'odin-react';
 import 'odin-react/dist/index.css'
 
 import {LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, LOKICarrierSummaryCard, StatusBadge} from './Loki.js'
@@ -52,26 +52,26 @@ function HMHz() {
                 <Row>
                     <LOKIConnectionAlert adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} set_loki_connection_state={set_loki_connection_ok} />
                 </Row>
-                <Row>
-                    <Col md={2}>
+                <Row className="justify-content-md-center">
+                    <Col sm={12} xl={4} xxl={2}>
                         <LOKICarrierSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} foundLoopException={foundLoopException}/>
                     </Col>
-                    <Col md={2}>
+                    <Col sm={12} xl={4} xxl="auto">
                         <HMHzPowerBoardSummaryCard loki_connection_state={loki_connection_ok} power_board_present={power_board_present} power_board_init={power_board_init} power_board_temp={power_board_temp} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} regs_en={regs_en} />
                     </Col>
-                    <Col md={3}>
+                    <Col sm={12} xl={4} xxl={3}>
                         <HMHzCOBSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_present={cob_present} cob_init={cob_init} asic_temp={asic_temp} asic_en={asic_en} asic_init={asic_init} fastdata_init={fastdata_init} fastdata_en={fastdata_en} asic_sync={asic_sync} ff1_pn={ff1_pn} ff2_pn={ff2_pn} />
                     </Col>
-                    <Col>
+                    <Col sm="auto" xxl={5}>
                         <HMHzStateControl adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} sys_init_state={sys_init_state} sys_init_state_target={sys_init_state_target} sys_init_progress_perc={sys_init_progress} sys_init_err={sys_init_err} power_board_init={power_board_init} cob_init={cob_init} asic_init={asic_init}/>
                     </Col>
                 </Row>
                 <Row>
-                    <Col>
+                    <Col xxl={8} lg={12}>
                         <TitleCard title="Slow Readout">
                             <Row>
-                                <Col md={8}>
-                                    Image
+                                <Col>
+                                    <HMHzReadoutRender adapterEndpoint={periodicEndpoint} asic_init={asic_init} fakedata={false}/>
                                 </Col>
                                 <Col md="auto">
                                     Settings
@@ -79,7 +79,7 @@ function HMHz() {
                             </Row>
                         </TitleCard>
                     </Col>
-                    <Col md={4}>
+                    <Col xxl={4} lg="auto">
                         <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled}/>
                     </Col>
                 </Row>
@@ -130,7 +130,7 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
         <>
             <Accordion >
                 <Accordion.Item eventKey="0">
-                    <Accordion.Header>
+                    <Accordion.Button disabled={false}>
                         <Row className="justify-content-md-center">
                             <Col md="auto">
                                 High Voltage Bias
@@ -151,9 +151,9 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                                 <StatusBadge label={hv_mismatch ? (<><Icon.ExclamationTriangleFill /><span>&nbsp;mismatch</span></>) : ""} type="danger" />
                             </Col>
                         </Row>
-                    </Accordion.Header>
+                    </Accordion.Button>
                     <Accordion.Body>
-                        <HMHzHVControl adapterEndpoint={adapterEndpoint} loki_connection_state={loki_connection_state} />
+                        <HMHzHVControl adapterEndpoint={adapterEndpoint} loki_connection_state={loki_connection_state} power_board_init={power_board_init} />
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="1">
@@ -445,11 +445,11 @@ const HVEnableEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
 const HVAutoEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
 const DirectVCONTEndpointButton = WithEndpoint(Button);
 const BiasTargetEndpointButton = WithEndpoint(Button);
-function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled}) {
+function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled, power_board_init}) {
     const [vcont_direct, set_vcont_direct] = useState(null);
     const [target_bias, set_target_bias] = useState(null);
 
-    if (!loki_connection_state) {
+    if (!loki_connection_state || !power_board_init) {
         return (<></>)
     }
 
@@ -630,6 +630,106 @@ function HMHzChannelControl({adapterEndpoint, loki_connection_state, cob_init, a
                 </table>
             </Row>
         </Container>
+    )
+}
+
+function HMHzReadoutRender({adapterEndpoint, asic_init, fakedata=false}) {
+    let image_dat = adapterEndpoint.data?.application?.readout?.imgdat;
+    if (fakedata) {
+        image_dat = [
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+            Array.from(Array(80), () => Math.round(Math.random()*4095)),
+        ];
+    }
+
+    if (asic_init) {
+        return (<></>);
+    }
+
+    return (
+        <Row>
+            <Col>
+                {image_dat !== undefined && <OdinGraph title='HEXITEC-MHz Sensor SPI Readback' type='heatmap' prop_data={image_dat} colorscale='viridis' />}
+            </Col>
+        </Row>
     )
 }
 
