@@ -37,6 +37,7 @@ function HMHz() {
     let hv_bias_readback = Math.round(periodicEndpoint?.data?.application?.HV.readback_bias);
     let power_board_temp = periodicEndpoint?.data?.environment?.temperature?.POWER_BOARD;
     let asic_temp = periodicEndpoint?.data?.environment?.temperature?.ASIC;
+    let diode_temp = periodicEndpoint?.data?.environment?.temperature?.DIODE;
     let asic_init = periodicEndpoint?.data?.application?.system_state.ASIC_INIT;
     let asic_en = periodicEndpoint?.data?.application?.system_state.ASIC_EN;
     let fastdata_init = periodicEndpoint?.data?.application?.system_state.ASIC_FASTDATA_INIT;
@@ -45,6 +46,11 @@ function HMHz() {
     let asic_sync = periodicEndpoint?.data?.application?.system_state.SYNC;
     let ff1_pn = periodicEndpoint?.data?.application?.firefly?.ch00to09?.PARTNUMBER;
     let ff2_pn = periodicEndpoint?.data?.application?.firefly?.ch10to19?.PARTNUMBER;
+    let peltier_proportion = periodicEndpoint?.data?.application?.peltier?.proportion;
+    let peltier_en = periodicEndpoint?.data?.application?.peltier?.enable;
+    let trip_info = periodicEndpoint?.data?.application?.monitoring?.TRIPS;
+    let vddd_i = periodicEndpoint?.data?.application?.monitoring?.VDDD_I;
+    let vdda_i = periodicEndpoint?.data?.application?.monitoring?.VDDA_I;
 
     return (
         <OdinApp title="HEXITEC-MHz UI" navLinks={["HEXITEC-MHz Control", "Debug Info", "LOKI System"]}>
@@ -57,10 +63,10 @@ function HMHz() {
                         <LOKICarrierSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} foundLoopException={foundLoopException}/>
                     </Col>
                     <Col sm={12} xl={4} xxl="auto">
-                        <HMHzPowerBoardSummaryCard loki_connection_state={loki_connection_ok} power_board_present={power_board_present} power_board_init={power_board_init} power_board_temp={power_board_temp} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} regs_en={regs_en} />
+                        <HMHzPowerBoardSummaryCard loki_connection_state={loki_connection_ok} power_board_present={power_board_present} power_board_init={power_board_init} power_board_temp={power_board_temp} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} regs_en={regs_en} vddd_i={vddd_i} vdda_i={vdda_i} trip_info={trip_info} />
                     </Col>
                     <Col sm={12} xl={4} xxl={3}>
-                        <HMHzCOBSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_present={cob_present} cob_init={cob_init} asic_temp={asic_temp} asic_en={asic_en} asic_init={asic_init} fastdata_init={fastdata_init} fastdata_en={fastdata_en} asic_sync={asic_sync} ff1_pn={ff1_pn} ff2_pn={ff2_pn} />
+                        <HMHzCOBSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_present={cob_present} cob_init={cob_init} asic_temp={asic_temp} diode_temp={diode_temp} asic_en={asic_en} asic_init={asic_init} fastdata_init={fastdata_init} fastdata_en={fastdata_en} asic_sync={asic_sync} ff1_pn={ff1_pn} ff2_pn={ff2_pn} />
                     </Col>
                     <Col sm="auto" xxl={5}>
                         <HMHzStateControl adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} sys_init_state={sys_init_state} sys_init_state_target={sys_init_state_target} sys_init_progress_perc={sys_init_progress} sys_init_err={sys_init_err} power_board_init={power_board_init} cob_init={cob_init} asic_init={asic_init}/>
@@ -80,7 +86,7 @@ function HMHz() {
                         </TitleCard>
                     </Col>
                     <Col xxl={4} lg="auto">
-                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled}/>
+                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled} peltier_proportion={peltier_proportion} peltier_en={peltier_en}/>
                     </Col>
                 </Row>
             </Container>
@@ -121,7 +127,7 @@ function HMHz() {
     )
 }
 
-function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled}) {
+function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled, peltier_proportion, peltier_en}) {
     if (!loki_connection_state) {
         return (<></>)
     }
@@ -221,18 +227,59 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                         <HMHzChannelControl adapterEndpoint={adapterEndpoint} loki_connection_state={loki_connection_state} cob_init={cob_init} asic_init={asic_init} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled}/>
                     </Accordion.Body>
                 </Accordion.Item>
+                <Accordion.Item eventKey="6">
+                    <Accordion.Header>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto">
+                                Peltier
+                            </Col>
+                            <Col md="auto" hidden={!(power_board_init)}>
+                                <StatusBadge label={peltier_en ? "On" : "Disabled"} type={peltier_en ? "success" : "warning"}/>
+                            </Col>
+                            <Col md="auto" hidden={!(power_board_init && peltier_en)}>
+                                <StatusBadge label={Math.round(peltier_proportion*100) + "%"} type="primary"/>
+                            </Col>
+                        </Row>
+                    </Accordion.Header>
+                    <Accordion.Body>
+                    </Accordion.Body>
+                </Accordion.Item>
             </Accordion>
         </>
     )
 }
 
-function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, power_board_init, power_board_temp, hv_enabled, hv_bias_readback, regs_en}) {
+function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, power_board_init, power_board_temp, hv_enabled, hv_bias_readback, regs_en, vddd_i, vdda_i, trip_info}) {
     if (!loki_connection_state) {
         return (<></>)
     }
 
     let card_content;
     if (power_board_present && power_board_init) {
+
+        // Trips
+        console.log('trip info: ', trip_info);
+        let trip_names = Object.keys(trip_info);
+        console.log('trip names: ', trip_names);
+        let trip_badges;
+        trip_badges = trip_names.map((trip_name) => {
+            let tripped = trip_info[trip_name].Tripped;
+            let description = trip_info[trip_name].Description;
+
+            // The ANY trip is not specific
+            if (trip_name === 'ANY'){
+                return(<></>);
+            }
+
+            return (
+                <Row>
+                    <Col md="auto" hidden={!tripped}>
+                        <StatusBadge label={"TRIP: " + description} type="danger" />
+                    </Col>
+                </Row>
+            )
+        });
+
         card_content = (
             <Container fluid>
                 <Row>
@@ -259,10 +306,19 @@ function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, 
                 <Row>
                     <Col md="auto">
                         <Icon.Lightning />
-                        LV Regulators:
+                        Regs:
                     </Col>
-                    <Col md="auto">
-                        <StatusBadge label={regs_en ? "Enabled" : "Disabled"} type={regs_en ? "success" : "warning"} />
+                    <Col md="auto" hidden={regs_en}>
+                        <StatusBadge label="Disabled" type="warning" />
+                    </Col>
+                    <Col md="auto" hidden={!regs_en}>
+                        <StatusBadge label={"D: " + vddd_i.toFixed(2) + "A"} type={trip_info['TRIP_REG_DI'].Tripped ? "danger" : "success"} />
+                        <StatusBadge label={"A: " + vdda_i.toFixed(2) + "A"} type={trip_info['TRIP_REG_AI'].Tripped ? "danger" : "success"} />
+                    </Col>
+                </Row>
+                <Row>
+                    <Col>
+                        {trip_badges}
                     </Col>
                 </Row>
             </Container>
@@ -291,7 +347,7 @@ function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, 
 }
 
 const SyncEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
-function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present, cob_init, asic_temp, asic_en, asic_init, fastdata_init, fastdata_en, asic_sync, ff1_pn, ff2_pn}) {
+function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present, cob_init, asic_temp, diode_temp, asic_en, asic_init, fastdata_init, fastdata_en, asic_sync, ff1_pn, ff2_pn}) {
     if (!loki_connection_state) {
         return (<></>)
     }
@@ -309,6 +365,9 @@ function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present
                     </Col>
                     <Col md="auto">
                         <StatusBadge label={Math.round(asic_temp) + "\u00b0C"} />
+                    </Col>
+                    <Col md="auto">
+                        <StatusBadge label={Math.round(diode_temp) + "\u00b0C"} />
                     </Col>
                 </Row>
                 <Row>
