@@ -796,7 +796,7 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
     return (
         <Container>
             <Row className="justify-content-md-center">
-                <HVEnableEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Peltier Enable" fullpath="application/peltier/enable" checked={peltier_info?.enable} value={peltier_info?.enable} />
+                <PeltierEnEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Peltier Enable" fullpath="application/peltier/enable" checked={peltier_info?.enable} value={peltier_info?.enable} />
                 <Col md="auto">
                     <PeltierProportionDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/proportion" buttonText={"Proportion: " + Math.round(peltier_info.proportion*100) + "%"} variant="primary" >
                         <Dropdown.Item eventKey={0.2}>20%</Dropdown.Item>
