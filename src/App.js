@@ -5,12 +5,12 @@ import {useState} from 'react';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch, StatusBox, OdinGraph} from 'odin-react';
+import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch, StatusBox, OdinGraph, DropdownSelector} from 'odin-react';
 import 'odin-react/dist/index.css'
 
 import {LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, LOKICarrierSummaryCard, StatusBadge} from './Loki.js'
 
-import {Row, Col, Container, ProgressBar, Alert, Button, Spinner, Stack, Accordion, InputGroup, Form} from 'react-bootstrap'
+import {Row, Col, Container, ProgressBar, Alert, Button, Spinner, Stack, Accordion, InputGroup, Form, Dropdown} from 'react-bootstrap'
 import * as Icon from 'react-bootstrap-icons';
 
 function HMHz() {
@@ -48,6 +48,7 @@ function HMHz() {
     let ff2_pn = periodicEndpoint?.data?.application?.firefly?.ch10to19?.PARTNUMBER;
     let peltier_proportion = periodicEndpoint?.data?.application?.peltier?.proportion;
     let peltier_en = periodicEndpoint?.data?.application?.peltier?.enable;
+    let peltier_saved = periodicEndpoint?.data?.application?.peltier?.proportion_save;
     let trip_info = periodicEndpoint?.data?.application?.monitoring?.TRIPS;
     let vddd_i = periodicEndpoint?.data?.application?.monitoring?.VDDD_I;
     let vdda_i = periodicEndpoint?.data?.application?.monitoring?.VDDA_I;
@@ -85,8 +86,8 @@ function HMHz() {
                             </Row>
                         </TitleCard>
                     </Col>
-                    <Col xxl={4} lg="auto">
-                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled} peltier_proportion={peltier_proportion} peltier_en={peltier_en}/>
+                    <Col xxl={4} lg="auto" style={{height: "55vh", overflowY: "auto"}}>
+                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled} peltier_proportion={peltier_proportion} peltier_en={peltier_en} peltier_saved={peltier_saved} />
                     </Col>
                 </Row>
             </Container>
@@ -127,10 +128,35 @@ function HMHz() {
     )
 }
 
-function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled, peltier_proportion, peltier_en}) {
+const VCALEndpointButton = WithEndpoint(Button);
+const FrameLengthEndpointButton = WithEndpoint(Button);
+const IntegrationTimeEndpointButton = WithEndpoint(Button);
+const PreAmpCapDropdown = WithEndpoint(DropdownSelector);
+function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled, peltier_proportion, peltier_en, peltier_saved}) {
+    const [vcal, set_vcal] = useState(null);
+    const [frame_length_ui, set_frame_length_ui] = useState(null);
+    const [integration_time_ui, set_integration_time_ui] = useState(null);
+
     if (!loki_connection_state) {
         return (<></>)
     }
+
+    const update_vcal = (event) => {
+        set_vcal(+event.target.value);
+    }
+
+    const update_frame_length = (event) => {
+        set_frame_length_ui(+event.target.value);
+    }
+
+    const update_integration_time = (event) => {
+        set_integration_time_ui(+event.target.value);
+    }
+
+    let feedback_capacitance = adapterEndpoint?.data?.application?.asic_settings?.feedback_capacitance;
+    let feedback_gain = adapterEndpoint?.data?.application?.asic_settings?.feedback_gain;
+    let frame_length = adapterEndpoint?.data?.application?.asic_settings?.frame_length;
+    let integration_time = adapterEndpoint?.data?.application?.asic_settings?.integration_time;
 
     return (
         <>
@@ -169,11 +195,20 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                                 Pre-Amplifier
                             </Col>
                             <Col md="auto" hidden={!asic_init}>
-                                <StatusBadge label={adapterEndpoint?.data?.application?.asic_settings?.feedback_capacitance + " fF"} type={adapterEndpoint?.data?.application?.asic_settings?.feedback_capacitance ? "primary" : "warning"}/>
+                                <StatusBadge label={feedback_capacitance + " fF"} type={feedback_capacitance ? "primary" : "warning"}/>
                             </Col>
                         </Row>
                     </Accordion.Header>
                     <Accordion.Body>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto" hidden={!asic_init}>
+                                <PreAmpCapDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/feedback_capacitance" buttonText={Math.round(feedback_capacitance) + "fF (" + feedback_gain + ")"} variant="primary" >
+                                    <Dropdown.Item eventKey={7}>7fF</Dropdown.Item>
+                                    <Dropdown.Item eventKey={14}>14fF</Dropdown.Item>
+                                    <Dropdown.Item eventKey={21}>21fF</Dropdown.Item>
+                                </PreAmpCapDropdown>
+                            </Col>
+                        </Row>
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="2">
@@ -183,14 +218,32 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                                 Frame Config
                             </Col>
                             <Col md="auto" hidden={!asic_init}>
-                                <StatusBadge label={adapterEndpoint?.data?.application?.asic_settings?.frame_length} type={adapterEndpoint?.data?.application?.asic_settings?.frame_length ? "primary" : "warning"}/>
+                                <StatusBadge label={frame_length} type={frame_length ? "primary" : "warning"}/>
                             </Col>
                             <Col md="auto" hidden={!asic_init}>
-                                <StatusBadge label={adapterEndpoint?.data?.application?.asic_settings?.integration_time} type={adapterEndpoint?.data?.application?.asic_settings?.integration_time ? "primary" : "warning"}/>
+                                <StatusBadge label={integration_time} type={integration_time ? "primary" : "warning"}/>
                             </Col>
                         </Row>
                     </Accordion.Header>
                     <Accordion.Body>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto" hidden={!asic_init}>
+                                <InputGroup>
+                                    <InputGroup.Text>Frame Length</InputGroup.Text>
+                                    <Form.Control type="number" onChange={update_frame_length} defaultValue={frame_length}/>
+                                    <InputGroup.Text></InputGroup.Text>
+                                    <FrameLengthEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/asic_settings/frame_length" value={frame_length_ui}>Set</FrameLengthEndpointButton>
+                                </InputGroup>
+                            </Col>
+                            <Col md="auto" hidden={!asic_init}>
+                                <InputGroup>
+                                    <InputGroup.Text>Integration Time</InputGroup.Text>
+                                    <Form.Control type="number" onChange={update_integration_time} defaultValue={integration_time}/>
+                                    <InputGroup.Text></InputGroup.Text>
+                                    <IntegrationTimeEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/asic_settings/integration_time" value={integration_time_ui}>Set</IntegrationTimeEndpointButton>
+                                </InputGroup>
+                            </Col>
+                        </Row>
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="3">
@@ -205,11 +258,24 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                         </Row>
                     </Accordion.Header>
                     <Accordion.Body>
+                        <InputGroup>
+                            <InputGroup.Text>VCAL</InputGroup.Text>
+                            <Form.Control type="number" onChange={update_vcal} defaultValue={adapterEndpoint?.data?.application?.vcal}/>
+                            <InputGroup.Text>V</InputGroup.Text>
+                            <VCALEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/vcal" value={vcal}>Set</VCALEndpointButton>
+                        </InputGroup>
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="4">
-                    <Accordion.Header>Test Pattern</Accordion.Header>
+                    <Accordion.Header>
+                        <Row className="justify-content-md-center">
+                            <Col md="auto">
+                                Test Pattern
+                            </Col>
+                        </Row>
+                    </Accordion.Header>
                     <Accordion.Body>
+                        <HMHzTestPatternControl adapterEndpoint={adapterEndpoint} loki_connection_state={loki_connection_state} asic_init={asic_init}/>
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="5">
@@ -239,9 +305,13 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                             <Col md="auto" hidden={!(power_board_init && peltier_en)}>
                                 <StatusBadge label={Math.round(peltier_proportion*100) + "%"} type="primary"/>
                             </Col>
+                            <Col md="auto" hidden={!power_board_init}>
+                                <StatusBadge label={peltier_saved ? "" : (<><Icon.Save /><span>&nbsp;unsaved</span></>)} type="danger" />
+                            </Col>
                         </Row>
                     </Accordion.Header>
                     <Accordion.Body>
+                        <HMHzPeltierControl adapterEndpoint={adapterEndpoint} loki_connection_state={loki_connection_state} cob_init={cob_init} power_board_init={power_board_init} />
                     </Accordion.Body>
                 </Accordion.Item>
             </Accordion>
@@ -347,6 +417,8 @@ function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, 
 }
 
 const SyncEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
+const RegsEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
+const ASICEnEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
 function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present, cob_init, asic_temp, diode_temp, asic_en, asic_init, fastdata_init, fastdata_en, asic_sync, ff1_pn, ff2_pn}) {
     if (!loki_connection_state) {
         return (<></>)
@@ -488,12 +560,23 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
                         </Col>
                     </Row>
                 </Stack>
-                <div className="vr" />
-                <Row>
-                    <Col md="auto">
-                        <SyncEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="SYNC" fullpath="application/system_state/SYNC" checked={adapterEndpoint.data.application?.system_state?.SYNC} value={adapterEndpoint.data.application?.system_state?.SYNC} />
-                    </Col>
-                </Row>
+                <Stack gap={1}>
+                    <Row>
+                        <Col md={12}>
+                            <SyncEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="SYNC" fullpath="application/system_state/SYNC" checked={adapterEndpoint.data.application?.system_state?.SYNC} value={adapterEndpoint.data.application?.system_state?.SYNC} />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col md={12}>
+                            <RegsEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Regs" fullpath="application/system_state/REGS_EN" checked={adapterEndpoint.data.application?.system_state?.REGS_EN} value={adapterEndpoint.data.application?.system_state?.REGS_EN} />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col md={12}>
+                            <ASICEnEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="ASIC EN" fullpath="application/system_state/ASIC_EN" checked={adapterEndpoint.data.application?.system_state?.ASIC_EN} value={adapterEndpoint.data.application?.system_state?.ASIC_EN} />
+                        </Col>
+                    </Row>
+                </Stack>
             </Stack>
         </TitleCard>
     )
@@ -552,7 +635,7 @@ function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled, powe
                             <Col md={8}>
                                 <InputGroup>
                                     <InputGroup.Text>Target Bias</InputGroup.Text>
-                                    <Form.Control type="number" onChange={update_target_bias}/>
+                                    <Form.Control type="number" onChange={update_target_bias} defaultValue={hvinfo?.target_bias}/>
                                     <InputGroup.Text>V</InputGroup.Text>
                                     <BiasTargetEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/HV/target_bias" value={target_bias}>Set</BiasTargetEndpointButton>
                                 </InputGroup>
@@ -565,7 +648,7 @@ function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled, powe
                             <Col md={8} hidden={hvinfo?.AUTO_MODE_EN}>
                                 <InputGroup>
                                     <InputGroup.Text>Control</InputGroup.Text>
-                                    <Form.Control type="number" onChange={update_direct_vcont}/>
+                                    <Form.Control type="number" onChange={update_direct_vcont} defaultValue={hvinfo?.control_voltage.toFixed(2)}/>
                                     <InputGroup.Text>V</InputGroup.Text>
                                     <DirectVCONTEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/HV/control_voltage" value={vcont_direct}>Set</DirectVCONTEndpointButton>
                                 </InputGroup>
@@ -602,6 +685,14 @@ function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled, powe
             </Row>
         </Container>
     )
+}
+
+function HMHzTestPatternControl({adapterEndpoint, loki_connection_state, asic_init}) {
+    if (!asic_init) {
+        return (<></>);
+    }
+
+    return (<>Pattern Control Stuff</>);
 }
 
 function HMHzChannelControl({adapterEndpoint, loki_connection_state, cob_init, asic_init, set_all_firefly_channels_enabled}) {
@@ -686,6 +777,52 @@ function HMHzChannelControl({adapterEndpoint, loki_connection_state, cob_init, a
                         {lane_rows}
                     </tbody>
                 </table>
+            </Row>
+        </Container>
+    )
+}
+
+const PeltierEnEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
+const SavePeltierEndpointButton = WithEndpoint(Button);
+const PeltierProportionDropdown = WithEndpoint(DropdownSelector);
+function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, power_board_init}) {
+
+    if (!power_board_init) {
+        return (<></>);
+    }
+
+    let peltier_info = adapterEndpoint?.data?.application?.peltier;
+
+    return (
+        <Container>
+            <Row className="justify-content-md-center">
+                <HVEnableEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Peltier Enable" fullpath="application/peltier/enable" checked={peltier_info?.enable} value={peltier_info?.enable} />
+                <Col md="auto">
+                    <PeltierProportionDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/proportion" buttonText={"Proportion: " + Math.round(peltier_info.proportion*100) + "%"} variant="primary" >
+                        <Dropdown.Item eventKey={0.2}>20%</Dropdown.Item>
+                        <Dropdown.Item eventKey={0.4}>40%</Dropdown.Item>
+                        <Dropdown.Item eventKey={0.45}>45%</Dropdown.Item>
+                        <Dropdown.Item eventKey={0.5}>50%</Dropdown.Item>
+                        <Dropdown.Item eventKey={0.55}>55%</Dropdown.Item>
+                        <Dropdown.Item eventKey={0.60}>60%</Dropdown.Item>
+                        <Dropdown.Item eventKey={0.65}>65%</Dropdown.Item>
+                        <Dropdown.Item eventKey={0.70}>70%</Dropdown.Item>
+                        <Dropdown.Item eventKey={0.75}>75%</Dropdown.Item>
+                        <Dropdown.Item eventKey={0.80}>80%</Dropdown.Item>
+                    </PeltierProportionDropdown>
+                </Col>
+                <Col md="auto">
+                    <StatusBox label="Count">{peltier_info.count}</StatusBox>
+                </Col>
+                <Col md="auto">
+                    <StatusBox label="Set Temperature">{peltier_info.temperature}</StatusBox>
+                </Col>
+                <SavePeltierEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/peltier/proportion_save" value={true} variant={peltier_info?.proportion_save ? "success" : "danger"}>
+                    {!peltier_info?.proportion_save && <Spinner animation="grow" size="sm" />}
+                    {peltier_info?.proportion_save ? " Saved " : " Save "}
+                    {peltier_info?.proportion_save ? <Icon.Check size={20}/> : <></>}
+                    {!peltier_info?.proportion_save && <Spinner animation="grow" size="sm" />}
+                </SavePeltierEndpointButton>
             </Row>
         </Container>
     )
