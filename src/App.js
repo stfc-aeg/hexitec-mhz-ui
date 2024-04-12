@@ -36,7 +36,7 @@ function HMHz() {
     let hv_mismatch = periodicEndpoint?.data?.application?.HV?.monitor_control_mismatch_detected;
     let hv_bias_readback = Math.round(periodicEndpoint?.data?.application?.HV.readback_bias);
     let power_board_temp = periodicEndpoint?.data?.environment?.temperature?.POWER_BOARD;
-    let asic_temp = periodicEndpoint?.data?.environment?.temperature?.ASIC;
+    let block_temp = periodicEndpoint?.data?.environment?.temperature?.BLOCK;
     let diode_temp = periodicEndpoint?.data?.environment?.temperature?.DIODE;
     let asic_init = periodicEndpoint?.data?.application?.system_state.ASIC_INIT;
     let asic_en = periodicEndpoint?.data?.application?.system_state.ASIC_EN;
@@ -67,7 +67,7 @@ function HMHz() {
                         <HMHzPowerBoardSummaryCard loki_connection_state={loki_connection_ok} power_board_present={power_board_present} power_board_init={power_board_init} power_board_temp={power_board_temp} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} regs_en={regs_en} vddd_i={vddd_i} vdda_i={vdda_i} trip_info={trip_info} />
                     </Col>
                     <Col sm={12} xl={4} xxl={3}>
-                        <HMHzCOBSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_present={cob_present} cob_init={cob_init} asic_temp={asic_temp} diode_temp={diode_temp} asic_en={asic_en} asic_init={asic_init} fastdata_init={fastdata_init} fastdata_en={fastdata_en} asic_sync={asic_sync} ff1_pn={ff1_pn} ff2_pn={ff2_pn} />
+                        <HMHzCOBSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_present={cob_present} cob_init={cob_init} block_temp={block_temp} diode_temp={diode_temp} asic_en={asic_en} asic_init={asic_init} fastdata_init={fastdata_init} fastdata_en={fastdata_en} asic_sync={asic_sync} ff1_pn={ff1_pn} ff2_pn={ff2_pn} />
                     </Col>
                     <Col sm="auto" xxl={5}>
                         <HMHzStateControl adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} sys_init_state={sys_init_state} sys_init_state_target={sys_init_state_target} sys_init_progress_perc={sys_init_progress} sys_init_err={sys_init_err} power_board_init={power_board_init} cob_init={cob_init} asic_init={asic_init}/>
@@ -419,7 +419,7 @@ function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, 
 const SyncEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
 const RegsEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
 const ASICEnEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
-function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present, cob_init, asic_temp, diode_temp, asic_en, asic_init, fastdata_init, fastdata_en, asic_sync, ff1_pn, ff2_pn}) {
+function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present, cob_init, block_temp, diode_temp, asic_en, asic_init, fastdata_init, fastdata_en, asic_sync, ff1_pn, ff2_pn}) {
     if (!loki_connection_state) {
         return (<></>)
     }
@@ -436,10 +436,11 @@ function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present
                         Temperature:
                     </Col>
                     <Col md="auto">
-                        <StatusBadge label={Math.round(asic_temp) + "\u00b0C"} />
+                        <StatusBadge label={Math.round(block_temp) + "\u00b0C"} />
                     </Col>
                     <Col md="auto">
-                        <StatusBadge label={Math.round(diode_temp) + "\u00b0C"} />
+                        {(diode_temp === null) && <StatusBadge label={"No Diode"} type="warning"/>}
+                        {(diode_temp !== null) && <StatusBadge label={Math.round(diode_temp) + "\u00b0C"} />}
                     </Col>
                 </Row>
                 <Row>
