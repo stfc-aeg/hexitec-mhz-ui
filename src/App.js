@@ -77,7 +77,7 @@ function HMHz() {
                     <Col xxl={8} lg={12}>
                         <TitleCard title="Slow Readout">
                             <Row>
-                                <Col>
+                                <Col md="auto">
                                     <HMHzReadoutRender adapterEndpoint={periodicEndpoint} asic_init={asic_init} fakedata={false}/>
                                 </Col>
                                 <Col md="auto">
@@ -830,7 +830,7 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
 }
 
 function HMHzReadoutRender({adapterEndpoint, asic_init, fakedata=false}) {
-    let image_dat = adapterEndpoint.data?.application?.readout?.imgdat;
+    let image_dat = adapterEndpoint.data?.application?.asic_settings?.segment_readout?.SEGMENT_DATA;
     if (fakedata) {
         image_dat = [
             Array.from(Array(80), () => Math.round(Math.random()*4095)),
@@ -916,14 +916,14 @@ function HMHzReadoutRender({adapterEndpoint, asic_init, fakedata=false}) {
         ];
     }
 
-    if (asic_init) {
+    if (!asic_init) {
         return (<></>);
     }
 
     return (
         <Row>
             <Col>
-                {image_dat !== undefined && <OdinGraph title='HEXITEC-MHz Sensor SPI Readback' type='heatmap' prop_data={image_dat} colorscale='viridis' />}
+                {(image_dat !== undefined && image_dat !== null) && <OdinGraph title='HEXITEC-MHz Sensor SPI Readback' type='heatmap' prop_data={image_dat} colorscale='viridis' />}
             </Col>
         </Row>
     )
