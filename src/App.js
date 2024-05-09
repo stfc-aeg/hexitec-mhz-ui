@@ -76,12 +76,12 @@ function HMHz() {
                 <Row>
                     <Col xxl={8} lg={12}>
                         <TitleCard title="Slow Readout">
-                            <Row>
+                            <Row className="justify-content-md-center">
                                 <Col md="auto">
                                     <HMHzReadoutRender adapterEndpoint={periodicEndpoint} asic_init={asic_init} fakedata={false}/>
                                 </Col>
-                                <Col md="auto">
-                                    Settings
+                                <Col md={4}>
+                                    <HMHzReadoutSettings adapterEndpoint={periodicEndpoint} asic_init={asic_init} />
                                 </Col>
                             </Row>
                         </TitleCard>
@@ -157,6 +157,7 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
     let feedback_gain = adapterEndpoint?.data?.application?.asic_settings?.feedback_gain;
     let frame_length = adapterEndpoint?.data?.application?.asic_settings?.frame_length;
     let integration_time = adapterEndpoint?.data?.application?.asic_settings?.integration_time;
+    let cal_en = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.ENABLE;
 
     return (
         <>
@@ -272,10 +273,13 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                             <Col md="auto">
                                 Test Pattern
                             </Col>
+                            <Col md="auto" hidden={!asic_init || !cal_en}>
+                                <StatusBadge label={cal_en ? "Pattern On" : "Pattern Off"} type={"primary"}/>
+                            </Col>
                         </Row>
                     </Accordion.Header>
                     <Accordion.Body>
-                        <HMHzTestPatternControl adapterEndpoint={adapterEndpoint} loki_connection_state={loki_connection_state} asic_init={asic_init}/>
+                        <HMHzCalpatternRender adapterEndpoint={adapterEndpoint} asic_init={asic_init} cal_en={cal_en}/>
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="5">
@@ -688,14 +692,6 @@ function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled, powe
     )
 }
 
-function HMHzTestPatternControl({adapterEndpoint, loki_connection_state, asic_init}) {
-    if (!asic_init) {
-        return (<></>);
-    }
-
-    return (<>Pattern Control Stuff</>);
-}
-
 function HMHzChannelControl({adapterEndpoint, loki_connection_state, cob_init, asic_init, set_all_firefly_channels_enabled}) {
     // This will display information relating to the fast data lanes, related to actual ASIC lane numbering.
     // Primarily will be focussed on on-COB devices that affect the signal (FireFly channel enable, retimer
@@ -920,12 +916,99 @@ function HMHzReadoutRender({adapterEndpoint, asic_init, fakedata=false}) {
         return (<></>);
     }
 
+
     return (
         <Row>
             <Col>
                 {(image_dat !== undefined && image_dat !== null) && <OdinGraph title='HEXITEC-MHz Sensor SPI Readback' type='heatmap' prop_data={image_dat} colorscale='viridis' />}
             </Col>
         </Row>
+    )
+}
+
+const ReadoutStartEndpointButton = WithEndpoint(Button);
+const SegmentSelectDropdown = WithEndpoint(DropdownSelector);
+const SegmentTriggerEndpointButton = WithEndpoint(Button);
+function HMHzReadoutSettings({adapterEndpoint, asic_init}) {
+    const [segment_trigger, set_segment_trigger] = useState(null);
+
+    if (!asic_init) {
+        return (<></>)
+    }
+
+    let request_state = adapterEndpoint.data?.application?.asic_settings?.segment_readout?.REQUEST;
+    let current_segment = adapterEndpoint.data?.application?.asic_settings?.segment_readout?.SEGMENT_SELECT;
+
+    const update_segment_trigger = (event) => {
+        set_segment_trigger(+event.target.value);
+    }
+
+    return (
+        <TitleCard title="Readout Settings">
+            <Stack gap={1} direction="vertial">
+                <Row>
+                    <Col>
+
+                        <SegmentSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/segment_readout/SEGMENT_SELECT" buttonText={current_segment === 20 ? "All Segments" : "Segment " + current_segment} variant="primary" >
+                            <Dropdown.Item eventKey={20}>All Segments</Dropdown.Item>
+                            <Dropdown.Item eventKey={0}>Segment 0</Dropdown.Item>
+                            <Dropdown.Item eventKey={1}>Segment 1</Dropdown.Item>
+                            <Dropdown.Item eventKey={2}>Segment 2</Dropdown.Item>
+                            <Dropdown.Item eventKey={3}>Segment 3</Dropdown.Item>
+                            <Dropdown.Item eventKey={4}>Segment 4</Dropdown.Item>
+                            <Dropdown.Item eventKey={5}>Segment 5</Dropdown.Item>
+                            <Dropdown.Item eventKey={6}>Segment 6</Dropdown.Item>
+                            <Dropdown.Item eventKey={7}>Segment 7</Dropdown.Item>
+                            <Dropdown.Item eventKey={8}>Segment 8</Dropdown.Item>
+                            <Dropdown.Item eventKey={9}>Segment 9</Dropdown.Item>
+                            <Dropdown.Item eventKey={10}>Segment 10</Dropdown.Item>
+                            <Dropdown.Item eventKey={11}>Segment 11</Dropdown.Item>
+                            <Dropdown.Item eventKey={12}>Segment 12</Dropdown.Item>
+                            <Dropdown.Item eventKey={13}>Segment 13</Dropdown.Item>
+                            <Dropdown.Item eventKey={14}>Segment 14</Dropdown.Item>
+                            <Dropdown.Item eventKey={15}>Segment 15</Dropdown.Item>
+                            <Dropdown.Item eventKey={16}>Segment 16</Dropdown.Item>
+                            <Dropdown.Item eventKey={17}>Segment 17</Dropdown.Item>
+                            <Dropdown.Item eventKey={18}>Segment 18</Dropdown.Item>
+                            <Dropdown.Item eventKey={19}>Segment 19</Dropdown.Item>
+                        </SegmentSelectDropdown>
+                    </Col>
+                    <Col>
+                        <ReadoutStartEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/asic_settings/segment_readout/REQUEST" value={true} variant={request_state === null ? "success" : "outline-primary"}>
+                            {request_state !== null && <Spinner animation="border" size="sm" />}
+                            Request Image
+                        </ReadoutStartEndpointButton>
+                    </Col>
+                </Row>
+                <Row>
+                    <InputGroup>
+                        <InputGroup.Text>Pixel Value Trigger</InputGroup.Text>
+                        <Form.Control type="number" onChange={update_segment_trigger} defaultValue={adapterEndpoint?.data?.application?.asic_settings?.segment_readout?.TRIGGER}/>
+                        <SegmentTriggerEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/asic_settings/segment_readout/TRIGGER" value={segment_trigger}>Set</SegmentTriggerEndpointButton>
+                    </InputGroup>
+                </Row>
+            </Stack>
+        </TitleCard>
+    )
+}
+
+const CalibrationEnableEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
+function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en}) {
+    if (!asic_init) {
+        return (<></>);
+    }
+
+    let cal_dat = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.MODES?.DIRECT_MAP;
+
+    return (
+        <Container>
+            <Row className="justify-content-md-center">
+                <CalibrationEnableEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Calibration Pattern Enable" fullpath="application/asic_settings/calibration_pattern/ENABLE" checked={cal_en} value={cal_en} />
+            </Row>
+            <Row className="justify-content-md-center">
+                {(cal_dat !== undefined && cal_dat !== null) && <OdinGraph title='Calibration Pattern' type='heatmap' prop_data={cal_dat} num_x={80} height={20} width={20} colorscale='viridis' />}
+            </Row>
+        </Container>
     )
 }
 
