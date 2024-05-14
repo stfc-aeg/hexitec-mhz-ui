@@ -332,9 +332,7 @@ function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, 
     if (power_board_present && power_board_init) {
 
         // Trips
-        console.log('trip info: ', trip_info);
         let trip_names = Object.keys(trip_info);
-        console.log('trip names: ', trip_names);
         let trip_badges;
         trip_badges = trip_names.map((trip_name) => {
             let tripped = trip_info[trip_name].Tripped;
@@ -993,22 +991,67 @@ function HMHzReadoutSettings({adapterEndpoint, asic_init}) {
 }
 
 const CalibrationEnableEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
+const CalModeDropdown = WithEndpoint(DropdownSelector);
 function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en}) {
     if (!asic_init) {
         return (<></>);
     }
 
-    let cal_dat = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.MODES?.DIRECT_MAP;
+    let cal_dat = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.DIRECT_MAP;
+    let cal_mode_info = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.MODES;
+    let cal_mode_current = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.MODE;
+
+    let cal_mode_names = Object.keys(cal_mode_info);
+    console.log('cal_mode_names ' + cal_mode_names);
+    let cal_dropdown_items = cal_mode_names.map((cal_mode_name) => {
+        return (
+            <Dropdown.Item eventKey={cal_mode_name}>{cal_mode_name}</Dropdown.Item>
+        );
+    });
+    console.log(cal_dropdown_items);
 
     return (
         <Container>
-            <Row className="justify-content-md-center">
-                <CalibrationEnableEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Calibration Pattern Enable" fullpath="application/asic_settings/calibration_pattern/ENABLE" checked={cal_en} value={cal_en} />
-            </Row>
-            <Row className="justify-content-md-center">
-                {(cal_dat !== undefined && cal_dat !== null) && <OdinGraph title='Calibration Pattern' type='heatmap' prop_data={cal_dat} num_x={80} height={20} width={20} colorscale='viridis' />}
-            </Row>
+            <Stack gap={1} direction="vertical">
+                <Row className="justify-content-md-center">
+                    <Col>
+                    <CalibrationEnableEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Calibration Pattern Enable" fullpath="application/asic_settings/calibration_pattern/ENABLE" checked={cal_en} value={cal_en} />
+                    </Col>
+                    <Col>
+                        <CalModeDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/calibration_pattern/MODE" buttonText={"Mode: " + cal_mode_current} variant="primary" >
+                            {cal_dropdown_items}
+                        </CalModeDropdown>
+                    </Col>
+                </Row>
+                <Row className="justify-content-md-center">
+                    <HMHzCalpatternPresetConfig adapterEndpoint={adapterEndpoint} presetConfig={adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.MODES?.PRESET} />
+                </Row>
+                <Row>
+                    <Col>
+                        {(cal_dat !== undefined && cal_dat !== null) && <OdinGraph title='Calibration Pattern' type='heatmap' prop_data={cal_dat} num_x={80} height={20} width={20} colorscale="Viridis" />}
+                    </Col>
+                </Row>
+            </Stack>
         </Container>
+    )
+}
+
+const PresetSelectDropdown = WithEndpoint(DropdownSelector);
+function HMHzCalpatternPresetConfig({adapterEndpoint, presetConfig}) {
+    let presets_available = presetConfig?.AVAIL;
+    let current_preset = presetConfig?.SELECT;
+    let dropdown_items = presets_available.map((preset_name) => {
+        return (
+            <Dropdown.Item eventKey={preset_name}>{preset_name}</Dropdown.Item>
+        );
+    });
+
+    return (
+        <TitleCard title="Preset Config">
+            <PresetSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/calibration_pattern/MODES/PRESET/SELECT" buttonText={current_preset} >
+                {dropdown_items}
+            </PresetSelectDropdown>
+        </TitleCard>
     )
 }
 
