@@ -14,9 +14,8 @@ import {Row, Col, Container, ProgressBar, Alert, Button, Spinner, Stack, Accordi
 import * as Icon from 'react-bootstrap-icons';
 
 function HMHz() {
-    const periodicEndpoint = useAdapterEndpoint("lokicarrier", "", 1000);
-    const staticEndpoint = useAdapterEndpoint("lokicarrier");
-    //const periodicSlowEndpoint = useAdapterEndpoint("lokicarrier", "", 5000);
+    const periodicEndpoint = useAdapterEndpoint("lokicarrier", process.env.REACT_APP_ENDPOINT_URL, 1000);
+    const staticEndpoint = useAdapterEndpoint("lokicarrier", process.env.REACT_APP_ENDPOINT_URL);
 
     const [loki_connection_ok, set_loki_connection_ok] = useState(true);
     const [foundLoopException, setFoundLoopException] = useState(false);
