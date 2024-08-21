@@ -433,15 +433,17 @@ function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present
                     <Col md={1}>
                         <Icon.Thermometer />
                     </Col>
-                    <Col md={4}>
-                        Temperature:
+                    <Col md="auto">
+                        Block:
+                        <StatusBadge label={Math.round(block_temp) + "\u00b0C"} type={block_temp<50 ? "primary" : "danger"}/>
+                    </Col>
+                    <Col md={1}>
+                        <Icon.Thermometer />
                     </Col>
                     <Col md="auto">
-                        <StatusBadge label={Math.round(block_temp) + "\u00b0C"} />
-                    </Col>
-                    <Col md="auto">
+                        Diode:
                         {(diode_temp === null) && <StatusBadge label={"No Diode"} type="warning"/>}
-                        {(diode_temp !== null) && <StatusBadge label={Math.round(diode_temp) + "\u00b0C"} />}
+                        {(diode_temp !== null) && <StatusBadge label={Math.round(diode_temp) + "\u00b0C"} type={diode_temp<50 ? "primary" : "danger"} />}
                     </Col>
                 </Row>
                 <Row>
@@ -534,7 +536,6 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
                         </Col>
                     </Row>
                         <Col>
-                            placeholder -system status info
                         </Col>
                     <Row>
                     </Row>
@@ -622,11 +623,11 @@ function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled, powe
             </Row>
             <Row>
                 <Col>
-                    <Row>
+                    <Row className="justify-content-md-center">
                         <Col md="auto">
                             <HVEnableEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="HV Enable" fullpath="application/HV/ENABLE" checked={hvinfo?.ENABLE} value={hvinfo?.ENABLE} />
                         </Col>
-                        <Col md="auto">
+                        <Col md="auto" hidden={true}>
                             <HVAutoEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Auto Set Control Voltage" fullpath="application/HV/AUTO_MODE_EN" checked={hvinfo?.AUTO_MODE_EN} value={hvinfo?.AUTO_MODE_EN} />
                         </Col>
                     </Row>
@@ -643,10 +644,10 @@ function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled, powe
                                 </InputGroup>
                             </Col>
                             <Col md="auto">
-                                <StatusBox label="Target Bias">{hvinfo?.target_bias?.toFixed(2) + " v"}</StatusBox>
+                                <StatusBox label="">{hvinfo?.target_bias?.toFixed(2) + " v"}</StatusBox>
                             </Col>
                         </Row>
-                        <Row>
+                        <Row hidden={true}>
                             <Col md={8} hidden={hvinfo?.AUTO_MODE_EN}>
                                 <InputGroup>
                                     <InputGroup.Text>Control</InputGroup.Text>
@@ -672,7 +673,7 @@ function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled, powe
                         </Row>
                     </TitleCard>
                 </Col>
-                <Col>
+                <Col hidden={true}>
                     <TitleCard title="Bias Readback">
                         <Row>
                             <Col md="auto">
