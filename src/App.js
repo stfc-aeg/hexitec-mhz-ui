@@ -2,6 +2,8 @@ import './App.css';
 
 import React from 'react';
 import {useState} from 'react';
+import {memo} from 'react';
+import {useMemo} from 'react';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -51,6 +53,7 @@ function HMHz() {
     let trip_info = periodicEndpoint?.data?.application?.monitoring?.TRIPS;
     let vddd_i = periodicEndpoint?.data?.application?.monitoring?.VDDD_I;
     let vdda_i = periodicEndpoint?.data?.application?.monitoring?.VDDA_I;
+    let image_dat = periodicEndpoint.data?.application?.asic_settings?.segment_readout?.SEGMENT_DATA;
 
     return (
         <OdinApp title="HEXITEC-MHz UI" navLinks={["HEXITEC-MHz Control", "Debug Info", "LOKI System"]}>
@@ -77,7 +80,7 @@ function HMHz() {
                         <TitleCard title="Slow Readout">
                             <Row className="justify-content-md-center">
                                 <Col md="auto">
-                                    <HMHzReadoutRender adapterEndpoint={periodicEndpoint} asic_init={asic_init} fakedata={false}/>
+                                    <HMHzReadoutRender image_dat={image_dat} asic_init={asic_init} fakedata={false}/>
                                 </Col>
                                 <Col md={4}>
                                     <HMHzReadoutSettings adapterEndpoint={periodicEndpoint} asic_init={asic_init} />
@@ -823,8 +826,25 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
     )
 }
 
-function HMHzReadoutRender({adapterEndpoint, asic_init, fakedata=false}) {
-    let image_dat = adapterEndpoint.data?.application?.asic_settings?.segment_readout?.SEGMENT_DATA;
+function isReadoutRenderEqual(oldProps, newProps) {
+    // Custom function to determine if the readout image should re-render
+
+    // If either is undefined, just render anyway
+    if (oldProps.image_dat === undefined || newProps.image_dat === undefined) {
+        return false;
+    }
+
+    for (let i = 0; i < oldProps.image_dat.length; i++) {
+        for (let j = 0; j < oldProps.image_dat[0].length; j++) {
+            if (oldProps.image_dat[i][j] !== newProps.image_dat[i][j]) {
+                return false;   // Found a difference
+            }
+        }
+    }
+    return true; // We didn't find any differences, they are the same
+}
+
+const HMHzReadoutRender = memo(function HMHzReadoutRender({image_dat, asic_init, fakedata=false}) {
     if (fakedata) {
         image_dat = [
             Array.from(Array(80), () => Math.round(Math.random()*4095)),
@@ -918,11 +938,11 @@ function HMHzReadoutRender({adapterEndpoint, asic_init, fakedata=false}) {
     return (
         <Row>
             <Col>
-                {(image_dat !== undefined && image_dat !== null) && <OdinGraph title='HEXITEC-MHz Sensor SPI Readback' type='heatmap' prop_data={image_dat} colorscale='viridis' />}
+                {(image_dat !== undefined && image_dat !== null) && <OdinGraph title='HEXITEC-MHz Sensor SPI Readback' type='heatmap' prop_data={image_dat} colorscale='Greens' />}
             </Col>
         </Row>
     )
-}
+}, isReadoutRenderEqual);
 
 const ReadoutStartEndpointButton = WithEndpoint(Button);
 const SegmentSelectDropdown = WithEndpoint(DropdownSelector);
