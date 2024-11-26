@@ -828,20 +828,7 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
 
 function isReadoutRenderEqual(oldProps, newProps) {
     // Custom function to determine if the readout image should re-render
-
-    // If either is undefined, just render anyway
-    if (oldProps.image_dat === undefined || newProps.image_dat === undefined) {
-        return false;
-    }
-
-    for (let i = 0; i < oldProps.image_dat.length; i++) {
-        for (let j = 0; j < oldProps.image_dat[0].length; j++) {
-            if (oldProps.image_dat[i][j] !== newProps.image_dat[i][j]) {
-                return false;   // Found a difference
-            }
-        }
-    }
-    return true; // We didn't find any differences, they are the same
+    return JSON.stringify(oldProps.image_dat) === JSON.stringify(newProps.image_dat);
 }
 
 const HMHzReadoutRender = memo(function HMHzReadoutRender({image_dat, asic_init, fakedata=false}) {
