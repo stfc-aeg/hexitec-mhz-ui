@@ -2,7 +2,6 @@ import './App.css';
 
 import React from 'react';
 import {useState} from 'react';
-import {memo} from 'react';
 import {useMemo} from 'react';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -53,7 +52,10 @@ function HMHz() {
     let trip_info = periodicEndpoint?.data?.application?.monitoring?.TRIPS;
     let vddd_i = periodicEndpoint?.data?.application?.monitoring?.VDDD_I;
     let vdda_i = periodicEndpoint?.data?.application?.monitoring?.VDDA_I;
+
     let image_dat = periodicEndpoint.data?.application?.asic_settings?.segment_readout?.SEGMENT_DATA;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const image_dat_stable = useMemo(() => image_dat, [JSON.stringify(image_dat)]);
 
     return (
         <OdinApp title="HEXITEC-MHz UI" navLinks={["HEXITEC-MHz Control", "Debug Info", "LOKI System"]}>
@@ -79,8 +81,8 @@ function HMHz() {
                     <Col xxl={8} lg={12}>
                         <TitleCard title="Slow Readout">
                             <Row className="justify-content-md-center">
-                                <Col md="auto">
-                                    <HMHzReadoutRender image_dat={image_dat} asic_init={asic_init} fakedata={false}/>
+                                <Col md={8}>
+                                    <HMHzReadoutRender image_dat={image_dat_stable} asic_init={asic_init} fakedata={false}/>
                                 </Col>
                                 <Col md={4}>
                                     <HMHzReadoutSettings adapterEndpoint={periodicEndpoint} asic_init={asic_init} />
@@ -826,12 +828,7 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
     )
 }
 
-function isReadoutRenderEqual(oldProps, newProps) {
-    // Custom function to determine if the readout image should re-render
-    return JSON.stringify(oldProps.image_dat) === JSON.stringify(newProps.image_dat);
-}
-
-const HMHzReadoutRender = memo(function HMHzReadoutRender({image_dat, asic_init, fakedata=false}) {
+function HMHzReadoutRender({image_dat, asic_init, fakedata=false}) {
     if (fakedata) {
         image_dat = [
             Array.from(Array(80), () => Math.round(Math.random()*4095)),
@@ -929,7 +926,7 @@ const HMHzReadoutRender = memo(function HMHzReadoutRender({image_dat, asic_init,
             </Col>
         </Row>
     )
-}, isReadoutRenderEqual);
+}
 
 const ReadoutStartEndpointButton = WithEndpoint(Button);
 const SegmentSelectDropdown = WithEndpoint(DropdownSelector);
