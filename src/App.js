@@ -1114,57 +1114,65 @@ function HMHzReadoutSettings({adapterEndpoint, asic_init, readout_cbar_min, set_
 
     return (
         <TitleCard title="Readout Settings">
-            <Stack gap={1} direction="vertial">
-                <Row>
-                    <Col>
+            <TitleCard title="Request">
+                <Stack gap={2} direction="vertial">
+                    <Row>
+                        <Col>
 
-                        <SegmentSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/segment_readout/SEGMENT_SELECT" buttonText={current_segment === 20 ? "All Segments" : "Segment " + current_segment} variant="primary" >
-                            <Dropdown.Item eventKey={20}>All Segments</Dropdown.Item>
-                            <Dropdown.Item eventKey={0}>Segment 0</Dropdown.Item>
-                            <Dropdown.Item eventKey={1}>Segment 1</Dropdown.Item>
-                            <Dropdown.Item eventKey={2}>Segment 2</Dropdown.Item>
-                            <Dropdown.Item eventKey={3}>Segment 3</Dropdown.Item>
-                            <Dropdown.Item eventKey={4}>Segment 4</Dropdown.Item>
-                            <Dropdown.Item eventKey={5}>Segment 5</Dropdown.Item>
-                            <Dropdown.Item eventKey={6}>Segment 6</Dropdown.Item>
-                            <Dropdown.Item eventKey={7}>Segment 7</Dropdown.Item>
-                            <Dropdown.Item eventKey={8}>Segment 8</Dropdown.Item>
-                            <Dropdown.Item eventKey={9}>Segment 9</Dropdown.Item>
-                            <Dropdown.Item eventKey={10}>Segment 10</Dropdown.Item>
-                            <Dropdown.Item eventKey={11}>Segment 11</Dropdown.Item>
-                            <Dropdown.Item eventKey={12}>Segment 12</Dropdown.Item>
-                            <Dropdown.Item eventKey={13}>Segment 13</Dropdown.Item>
-                            <Dropdown.Item eventKey={14}>Segment 14</Dropdown.Item>
-                            <Dropdown.Item eventKey={15}>Segment 15</Dropdown.Item>
-                            <Dropdown.Item eventKey={16}>Segment 16</Dropdown.Item>
-                            <Dropdown.Item eventKey={17}>Segment 17</Dropdown.Item>
-                            <Dropdown.Item eventKey={18}>Segment 18</Dropdown.Item>
-                            <Dropdown.Item eventKey={19}>Segment 19</Dropdown.Item>
-                        </SegmentSelectDropdown>
-                    </Col>
-                    <Col>
-                        <ReadoutStartEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/asic_settings/segment_readout/REQUEST" value={true} variant={request_state === null ? "success" : "outline-primary"}>
-                            {request_state !== null && <Spinner animation="border" size="sm" />}
-                            Request Image
-                        </ReadoutStartEndpointButton>
-                    </Col>
-                </Row>
-                <Row>
-                    <InputGroup>
-                        <InputGroup.Text>Pixel Value Trigger</InputGroup.Text>
-                        <Form.Control type="number" onChange={update_segment_trigger} defaultValue={adapterEndpoint?.data?.application?.asic_settings?.segment_readout?.TRIGGER}/>
-                        <SegmentTriggerEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/asic_settings/segment_readout/TRIGGER" value={segment_trigger}>Set</SegmentTriggerEndpointButton>
-                    </InputGroup>
-                </Row>
-                <Row>
-                    <InputGroup>
-                        <Form.Check label="Auto" checked={readout_cbar_autorange} defaultValue={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_autorange(Boolean(event.target.checked))}} />
-                        <InputGroup.Text>Colour Range</InputGroup.Text>
-                        <Form.Control type="number" disabled={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_min(Number(event.target.value))}} defaultValue={Number(readout_cbar_min)}/>
-                        <Form.Control type="number" disabled={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_max(Number(event.target.value))}} defaultValue={Number(readout_cbar_max)}/>
-                    </InputGroup>
-                </Row>
-            </Stack>
+                            <SegmentSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/segment_readout/SEGMENT_SELECT" buttonText={current_segment === 20 ? "All Segments" : "Segment " + current_segment} variant="primary" >
+                                <Dropdown.Item eventKey={20}>All Segments</Dropdown.Item>
+                                <Dropdown.Item eventKey={0}>Segment 0</Dropdown.Item>
+                                <Dropdown.Item eventKey={1}>Segment 1</Dropdown.Item>
+                                <Dropdown.Item eventKey={2}>Segment 2</Dropdown.Item>
+                                <Dropdown.Item eventKey={3}>Segment 3</Dropdown.Item>
+                                <Dropdown.Item eventKey={4}>Segment 4</Dropdown.Item>
+                                <Dropdown.Item eventKey={5}>Segment 5</Dropdown.Item>
+                                <Dropdown.Item eventKey={6}>Segment 6</Dropdown.Item>
+                                <Dropdown.Item eventKey={7}>Segment 7</Dropdown.Item>
+                                <Dropdown.Item eventKey={8}>Segment 8</Dropdown.Item>
+                                <Dropdown.Item eventKey={9}>Segment 9</Dropdown.Item>
+                                <Dropdown.Item eventKey={10}>Segment 10</Dropdown.Item>
+                                <Dropdown.Item eventKey={11}>Segment 11</Dropdown.Item>
+                                <Dropdown.Item eventKey={12}>Segment 12</Dropdown.Item>
+                                <Dropdown.Item eventKey={13}>Segment 13</Dropdown.Item>
+                                <Dropdown.Item eventKey={14}>Segment 14</Dropdown.Item>
+                                <Dropdown.Item eventKey={15}>Segment 15</Dropdown.Item>
+                                <Dropdown.Item eventKey={16}>Segment 16</Dropdown.Item>
+                                <Dropdown.Item eventKey={17}>Segment 17</Dropdown.Item>
+                                <Dropdown.Item eventKey={18}>Segment 18</Dropdown.Item>
+                                <Dropdown.Item eventKey={19}>Segment 19</Dropdown.Item>
+                            </SegmentSelectDropdown>
+                        </Col>
+                        <Col>
+                            <ReadoutStartEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/asic_settings/segment_readout/REQUEST" value={true} variant={request_state === null ? "success" : "outline-primary"}>
+                                {request_state !== null && <Spinner animation="border" size="sm" />}
+                                Request Image
+                            </ReadoutStartEndpointButton>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <InputGroup>
+                            <InputGroup.Text>Pixel Value Trigger</InputGroup.Text>
+                            <Form.Control type="number" onChange={update_segment_trigger} defaultValue={adapterEndpoint?.data?.application?.asic_settings?.segment_readout?.TRIGGER}/>
+                            <SegmentTriggerEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/asic_settings/segment_readout/TRIGGER" value={segment_trigger}>Set</SegmentTriggerEndpointButton>
+                        </InputGroup>
+                    </Row>
+                </Stack>
+            </TitleCard>
+            <TitleCard title="Plot">
+                <Stack>
+                    <Row>
+                        <InputGroup>
+                            <Form.Check label="Auto-scale Colour Range" checked={readout_cbar_autorange} defaultValue={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_autorange(Boolean(event.target.checked))}} />
+                        </InputGroup>
+                        <InputGroup hidden={readout_cbar_autorange}>
+                            <InputGroup.Text>Colour Range</InputGroup.Text>
+                            <Form.Control type="number" disabled={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_min(Number(event.target.value))}} defaultValue={Number(readout_cbar_min)}/>
+                            <Form.Control type="number" disabled={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_max(Number(event.target.value))}} defaultValue={Number(readout_cbar_max)}/>
+                        </InputGroup>
+                    </Row>
+                </Stack>
+            </TitleCard>
         </TitleCard>
     )
 }
