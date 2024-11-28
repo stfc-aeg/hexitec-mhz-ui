@@ -2,16 +2,162 @@ import './App.css';
 
 import React from 'react';
 import {useState} from 'react';
+import {useEffect} from 'react';
+import {useMemo} from 'react';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch, StatusBox, OdinGraph, DropdownSelector} from 'odin-react';
+import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch, StatusBox, DropdownSelector} from 'odin-react';
 import 'odin-react/dist/index.css'
 
 import {LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, LOKICarrierSummaryCard, StatusBadge} from './Loki.js'
 
 import {Row, Col, Container, ProgressBar, Alert, Button, Spinner, Stack, Accordion, InputGroup, Form, Dropdown} from 'react-bootstrap'
 import * as Icon from 'react-bootstrap-icons';
+
+
+// Temporary copy of OdinGraph with PR'ed changes
+import Plot from 'react-plotly.js';
+// Linting disabled as this is intentionally kept in line with odin-react repo copy
+/* eslint-disable */
+function OdinGraph(props) {
+
+
+    const {title, prop_data, x_data=null, width=null, height=null, 
+           num_x=null, num_y=null, type='scatter', series_names=[],
+           colorscale="Portland", zoom_event_handler=null, layout={}} = props;
+    const [data, changeData] = useState([{}]);
+    const [layout_state, changeLayout] = useState(layout);
+
+
+    const get_array_dimenions = (data) => {
+        var x = (x_data) ? x_data.length : data.length;
+        var y = (Array.isArray(data[0]) ? data[0].length : 1);
+        // var z = (Array.isArray(data[0]) ? (Array.isArray(data[0][0]) ? data[0][0].length : 1) : 1);
+
+        console.log("(" + x + ", " + y + ")");
+        return {x: x, y: y};
+    }
+
+    useEffect(() => {
+        console.log("Updating Data");
+        var data_dims = get_array_dimenions(prop_data);
+        var data = [];
+        if(type == "scatter" || type == "line")
+        {
+            //one dimensional data set(s)
+            if(data_dims.y > 1)
+            {
+                // multiple datasets
+                for(var i = 0; i<data_dims.x; i++){
+                    var dataset = {
+                        x: (x_data) ? x_data : Array.from(prop_data[i], (v, k) => k),
+                        y: prop_data[i],
+                        type: "scatter",
+                        name: series_names[i] || null
+                    }
+                    data.push(dataset);
+                }
+            }
+            else
+            {
+                var dataset = {
+                    x: (x_data) ? x_data : Array.from(prop_data, (v, k) => k),
+                    y: prop_data,
+                    type: "scatter"
+                }
+                data.push(dataset);
+                
+            }
+            
+            changeLayout(Object.assign(
+                // Default values
+                {
+                    yaxis: {
+                        autorange: true
+                    },
+                    title:title,
+                    autosize: true,
+                },
+
+                // Apply any overrides
+                layout
+            ));
+
+        }
+        else if(type == "heatmap" || type == "contour")
+        {
+            //2d dataset
+
+            if(data_dims.y > 1)
+            {
+                //data is 2 dimensional,  easy to turn into a 2d heatmap
+                var dataset = {
+                    z: prop_data,
+                    type: type,
+                    xaxis: "x",
+                    yaxis: "y",
+                    coloraxis: 'coloraxis',
+
+                }
+                data.push(dataset);
+                
+            }
+            else
+            {
+                var reshape_data = [];
+                for(var i = 0; i<prop_data.length; i+= num_x)
+                {
+                    reshape_data.push(prop_data.slice(i, i+num_x));
+                }
+                //data is one dimensional, we need to reshape it?
+                var dataset = {
+                    z: reshape_data,
+                    type: type,
+                    xaxis: "x",
+                    yaxis: "y",
+                    coloraxis: 'coloraxis',
+                }
+                data.push(dataset);
+            }
+
+            changeLayout(Object.assign(
+                // Default values: pixels are 1:1 x:y, auto ranged colorscale
+                {
+                    zaxis: {
+                        autorange: true
+                    },
+                    title:title,
+                    autosize: true,
+                    xaxis: {
+                        constrain: 'domain',    // Where plot is reduced, scale axis domain to fit
+                    },
+                    yaxis: {
+                        scaleanchor: 'x',       // Aspect ratio 1:1
+                        scaleratio: 1,          // Aspect ratio 1:1
+                        constrain: 'domain',    // Where plot is reduced, scale axis domain to fit
+                    },
+                    coloraxis: {
+                        // Note: if you override coloraxis, these settings will be lost unless
+                        // you duplicate them.
+                        colorscale: colorscale, // This value overrides the colorscale in data
+                    },
+                },
+
+                // Apply any overrides
+                layout
+            ));
+        }
+
+        changeData(data);
+
+    }, [prop_data, layout]);
+
+    return (
+        <Plot data={data} layout={layout_state} debug={true} onRelayout={zoom_event_handler} config={{responsive: true}} style={{height: '100%', width:'100%'}} useResizeHandler={true}/>
+    )
+}
+/* eslint-enable */
 
 function HMHz() {
     const periodicEndpoint = useAdapterEndpoint("lokicarrier", process.env.REACT_APP_ENDPOINT_URL, 1000);
@@ -20,6 +166,9 @@ function HMHz() {
     const [loki_connection_ok, set_loki_connection_ok] = useState(true);
     const [foundLoopException, setFoundLoopException] = useState(false);
     const [all_firefly_channels_enabled, set_all_firefly_channels_enabled] = useState(false);
+    const [readout_cbar_min, set_readout_cbar_min] = useState(null);
+    const [readout_cbar_max, set_readout_cbar_max] = useState(null);
+    const [readout_cbar_autorange, set_readout_cbar_autorange] = useState(true);
 
     let power_board_present = periodicEndpoint.data?.control?.presence_detection.backplane;
     let power_board_init = periodicEndpoint.data?.application?.system_state.POWER_BOARD_INIT;
@@ -39,6 +188,7 @@ function HMHz() {
     let diode_temp = periodicEndpoint?.data?.environment?.temperature?.DIODE;
     let asic_init = periodicEndpoint?.data?.application?.system_state.ASIC_INIT;
     let asic_en = periodicEndpoint?.data?.application?.system_state.ASIC_EN;
+    let asic_rebonding = periodicEndpoint?.data?.application?.system_state.ASIC_REBOND;
     let fastdata_init = periodicEndpoint?.data?.application?.system_state.ASIC_FASTDATA_INIT;
     let fastdata_en = periodicEndpoint?.data?.application?.system_state.ASIC_FASTDATA_EN;
     let regs_en = periodicEndpoint?.data?.application?.system_state.REGS_EN;
@@ -52,6 +202,14 @@ function HMHz() {
     let vddd_i = periodicEndpoint?.data?.application?.monitoring?.VDDD_I;
     let vdda_i = periodicEndpoint?.data?.application?.monitoring?.VDDA_I;
 
+    let image_dat = periodicEndpoint.data?.application?.asic_settings?.segment_readout?.SEGMENT_DATA;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const image_dat_stable = useMemo(() => image_dat, [JSON.stringify(image_dat)]);
+
+    let cal_dat = periodicEndpoint.data?.application?.asic_settings?.calibration_pattern?.DIRECT_MAP;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const cal_dat_stable = useMemo(() => cal_dat, [JSON.stringify(cal_dat)]);
+
     return (
         <OdinApp title="HEXITEC-MHz UI" navLinks={["HEXITEC-MHz Control", "Debug Info", "LOKI System"]}>
             <Container fluid>
@@ -62,31 +220,31 @@ function HMHz() {
                     <Col sm={12} xl={4} xxl={2}>
                         <LOKICarrierSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} foundLoopException={foundLoopException}/>
                     </Col>
-                    <Col sm={12} xl={4} xxl="auto">
+                    <Col sm={12} xl={4} xxl="auto" hidden={!loki_connection_ok}>
                         <HMHzPowerBoardSummaryCard loki_connection_state={loki_connection_ok} power_board_present={power_board_present} power_board_init={power_board_init} power_board_temp={power_board_temp} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} regs_en={regs_en} vddd_i={vddd_i} vdda_i={vdda_i} trip_info={trip_info} />
                     </Col>
-                    <Col sm={12} xl={4} xxl={3}>
+                    <Col sm={12} xl={4} xxl={3} hidden={!loki_connection_ok}>
                         <HMHzCOBSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_present={cob_present} cob_init={cob_init} block_temp={block_temp} diode_temp={diode_temp} asic_en={asic_en} asic_init={asic_init} fastdata_init={fastdata_init} fastdata_en={fastdata_en} asic_sync={asic_sync} ff1_pn={ff1_pn} ff2_pn={ff2_pn} />
                     </Col>
-                    <Col sm="auto" xxl={5}>
-                        <HMHzStateControl adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} sys_init_state={sys_init_state} sys_init_state_target={sys_init_state_target} sys_init_progress_perc={sys_init_progress} sys_init_err={sys_init_err} power_board_init={power_board_init} cob_init={cob_init} asic_init={asic_init}/>
+                    <Col sm="auto" xxl={5} hidden={!loki_connection_ok}>
+                        <HMHzStateControl adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} sys_init_state={sys_init_state} sys_init_state_target={sys_init_state_target} sys_init_progress_perc={sys_init_progress} sys_init_err={sys_init_err} power_board_init={power_board_init} cob_init={cob_init} asic_init={asic_init} asic_rebonding={asic_rebonding} />
                     </Col>
                 </Row>
-                <Row>
+                <Row hidden={!loki_connection_ok}>
                     <Col xxl={8} lg={12}>
                         <TitleCard title="Slow Readout">
                             <Row className="justify-content-md-center">
-                                <Col md="auto">
-                                    <HMHzReadoutRender adapterEndpoint={periodicEndpoint} asic_init={asic_init} fakedata={false}/>
+                                <Col md={8}>
+                                    <HMHzReadoutRender image_dat={image_dat_stable} asic_init={asic_init} cbar_min={readout_cbar_min} cbar_max={readout_cbar_max} cbar_autorange={readout_cbar_autorange} fakedata={false}/>
                                 </Col>
                                 <Col md={4}>
-                                    <HMHzReadoutSettings adapterEndpoint={periodicEndpoint} asic_init={asic_init} />
+                                    <HMHzReadoutSettings adapterEndpoint={periodicEndpoint} asic_init={asic_init} readout_cbar_min={readout_cbar_min} set_readout_cbar_min={set_readout_cbar_min} readout_cbar_max={readout_cbar_max} set_readout_cbar_max={set_readout_cbar_max} readout_cbar_autorange={readout_cbar_autorange} set_readout_cbar_autorange={set_readout_cbar_autorange}/>
                                 </Col>
                             </Row>
                         </TitleCard>
                     </Col>
                     <Col xxl={4} lg="auto" style={{height: "55vh", overflowY: "auto"}}>
-                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled} peltier_proportion={peltier_proportion} peltier_en={peltier_en} peltier_saved={peltier_saved} />
+                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled} peltier_proportion={peltier_proportion} peltier_en={peltier_en} peltier_saved={peltier_saved} cal_dat={cal_dat_stable}/>
                     </Col>
                 </Row>
             </Container>
@@ -131,7 +289,7 @@ const VCALEndpointButton = WithEndpoint(Button);
 const FrameLengthEndpointButton = WithEndpoint(Button);
 const IntegrationTimeEndpointButton = WithEndpoint(Button);
 const PreAmpCapDropdown = WithEndpoint(DropdownSelector);
-function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled, peltier_proportion, peltier_en, peltier_saved}) {
+function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled, peltier_proportion, peltier_en, peltier_saved, cal_dat}) {
     const [vcal, set_vcal] = useState(null);
     const [frame_length_ui, set_frame_length_ui] = useState(null);
     const [integration_time_ui, set_integration_time_ui] = useState(null);
@@ -278,7 +436,7 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                         </Row>
                     </Accordion.Header>
                     <Accordion.Body>
-                        <HMHzCalpatternRender adapterEndpoint={adapterEndpoint} asic_init={asic_init} cal_en={cal_en}/>
+                        <HMHzCalpatternRender adapterEndpoint={adapterEndpoint} asic_init={asic_init} cal_en={cal_en} cal_dat={cal_dat}/>
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="5">
@@ -514,7 +672,8 @@ function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present
 const PowerBoardInitEndpointButton = WithEndpoint(Button);
 const COBInitEndpointButton = WithEndpoint(Button);
 const ASICInitEndpointButton = WithEndpoint(Button);
-function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_progress_perc, sys_init_state, sys_init_state_target, sys_init_err, power_board_init, cob_init, asic_init}) {
+const RebondEndpointButton = WithEndpoint(Button);
+function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_progress_perc, sys_init_state, sys_init_state_target, sys_init_err, power_board_init, cob_init, asic_init, asic_rebonding}) {
     if (!loki_connection_state) {
         return (<></>)
     }
@@ -522,7 +681,7 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
     return (
         <TitleCard title="System Init">
             <Stack gap={1} direction="horizontal">
-                <Stack gap={1}>
+                <Stack gap={2}>
                     <Row>
                         <Col>
                             <ProgressBar now={sys_init_progress_perc} label={sys_init_state} variant={sys_init_err ? "danger" : sys_init_progress_perc === 100 ? "success" : "primary"} striped={sys_init_state !== sys_init_state_target ? true : false} animated={sys_init_state !== sys_init_state_target ? true : false}/>
@@ -534,10 +693,6 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
                                 {sys_init_err}
                             </Alert>
                         </Col>
-                    </Row>
-                        <Col>
-                        </Col>
-                    <Row>
                     </Row>
                     <Row>
                         <Col md="auto">
@@ -560,6 +715,14 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
                                 {sys_init_state === "ASIC_INIT" && <Spinner animation="border" size="sm" />}
                                 {asic_init ? " Re-init ASIC" : " Init ASIC"}
                             </ASICInitEndpointButton>
+                        </Col>
+                    </Row>
+                    <Row className="justify-content-md-center">
+                        <Col md="auto" hidden={!asic_init}>
+                            <RebondEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ASIC_REBOND" value={true} variant={asic_rebonding ? "outline-primary" : "primary"}>
+                                {asic_rebonding && <Spinner animation="border" size="sm" />}
+                                {" Re-bond Serialiser Channels"}
+                            </RebondEndpointButton>
                         </Col>
                     </Row>
                 </Stack>
@@ -823,8 +986,26 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
     )
 }
 
-function HMHzReadoutRender({adapterEndpoint, asic_init, fakedata=false}) {
-    let image_dat = adapterEndpoint.data?.application?.asic_settings?.segment_readout?.SEGMENT_DATA;
+function HMHzReadoutRender({image_dat, asic_init, cbar_min, cbar_max, cbar_autorange, fakedata=false}) {
+    const layout_stable = useMemo(() => {
+        // Override the default layout with a reduced colorscale  range.
+        const layout_new = {
+            'coloraxis': {
+                'colorscale': 'Viridis',
+            },
+            'height': 500,
+        };
+
+        if (cbar_min !== null && cbar_min !== '' && cbar_max !== null && cbar_max !== '' && !cbar_autorange) {
+            Object.assign(layout_new['coloraxis'], {'cmin':Number(cbar_min)});
+            Object.assign(layout_new['coloraxis'], {'cmax':Number(cbar_max)});
+        }
+
+        console.debug('updated readout layout: ', layout_new);
+        return layout_new;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cbar_min, cbar_max, cbar_autorange, image_dat]);
+
     if (fakedata) {
         image_dat = [
             Array.from(Array(80), () => Math.round(Math.random()*4095)),
@@ -911,14 +1092,14 @@ function HMHzReadoutRender({adapterEndpoint, asic_init, fakedata=false}) {
     }
 
     if (!asic_init) {
-        return (<></>);
+        return (<Row></Row>);
     }
 
 
     return (
         <Row>
             <Col>
-                {(image_dat !== undefined && image_dat !== null) && <OdinGraph title='HEXITEC-MHz Sensor SPI Readback' type='heatmap' prop_data={image_dat} colorscale='viridis' />}
+                {(image_dat !== undefined && image_dat !== null) && <OdinGraph title='HEXITEC-MHz Sensor SPI Readback' type='heatmap' prop_data={image_dat} colorscale='Viridis' layout={layout_stable}/>}
             </Col>
         </Row>
     )
@@ -927,7 +1108,7 @@ function HMHzReadoutRender({adapterEndpoint, asic_init, fakedata=false}) {
 const ReadoutStartEndpointButton = WithEndpoint(Button);
 const SegmentSelectDropdown = WithEndpoint(DropdownSelector);
 const SegmentTriggerEndpointButton = WithEndpoint(Button);
-function HMHzReadoutSettings({adapterEndpoint, asic_init}) {
+function HMHzReadoutSettings({adapterEndpoint, asic_init, readout_cbar_min, set_readout_cbar_min, readout_cbar_max, set_readout_cbar_max, readout_cbar_autorange, set_readout_cbar_autorange}) {
     const [segment_trigger, set_segment_trigger] = useState(null);
 
     if (!asic_init) {
@@ -943,72 +1124,87 @@ function HMHzReadoutSettings({adapterEndpoint, asic_init}) {
 
     return (
         <TitleCard title="Readout Settings">
-            <Stack gap={1} direction="vertial">
-                <Row>
-                    <Col>
+            <TitleCard title="Request">
+                <Stack gap={2} direction="vertial">
+                    <Row>
+                        <Col>
 
-                        <SegmentSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/segment_readout/SEGMENT_SELECT" buttonText={current_segment === 20 ? "All Segments" : "Segment " + current_segment} variant="primary" >
-                            <Dropdown.Item eventKey={20}>All Segments</Dropdown.Item>
-                            <Dropdown.Item eventKey={0}>Segment 0</Dropdown.Item>
-                            <Dropdown.Item eventKey={1}>Segment 1</Dropdown.Item>
-                            <Dropdown.Item eventKey={2}>Segment 2</Dropdown.Item>
-                            <Dropdown.Item eventKey={3}>Segment 3</Dropdown.Item>
-                            <Dropdown.Item eventKey={4}>Segment 4</Dropdown.Item>
-                            <Dropdown.Item eventKey={5}>Segment 5</Dropdown.Item>
-                            <Dropdown.Item eventKey={6}>Segment 6</Dropdown.Item>
-                            <Dropdown.Item eventKey={7}>Segment 7</Dropdown.Item>
-                            <Dropdown.Item eventKey={8}>Segment 8</Dropdown.Item>
-                            <Dropdown.Item eventKey={9}>Segment 9</Dropdown.Item>
-                            <Dropdown.Item eventKey={10}>Segment 10</Dropdown.Item>
-                            <Dropdown.Item eventKey={11}>Segment 11</Dropdown.Item>
-                            <Dropdown.Item eventKey={12}>Segment 12</Dropdown.Item>
-                            <Dropdown.Item eventKey={13}>Segment 13</Dropdown.Item>
-                            <Dropdown.Item eventKey={14}>Segment 14</Dropdown.Item>
-                            <Dropdown.Item eventKey={15}>Segment 15</Dropdown.Item>
-                            <Dropdown.Item eventKey={16}>Segment 16</Dropdown.Item>
-                            <Dropdown.Item eventKey={17}>Segment 17</Dropdown.Item>
-                            <Dropdown.Item eventKey={18}>Segment 18</Dropdown.Item>
-                            <Dropdown.Item eventKey={19}>Segment 19</Dropdown.Item>
-                        </SegmentSelectDropdown>
-                    </Col>
-                    <Col>
-                        <ReadoutStartEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/asic_settings/segment_readout/REQUEST" value={true} variant={request_state === null ? "success" : "outline-primary"}>
-                            {request_state !== null && <Spinner animation="border" size="sm" />}
-                            Request Image
-                        </ReadoutStartEndpointButton>
-                    </Col>
-                </Row>
-                <Row>
-                    <InputGroup>
-                        <InputGroup.Text>Pixel Value Trigger</InputGroup.Text>
-                        <Form.Control type="number" onChange={update_segment_trigger} defaultValue={adapterEndpoint?.data?.application?.asic_settings?.segment_readout?.TRIGGER}/>
-                        <SegmentTriggerEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/asic_settings/segment_readout/TRIGGER" value={segment_trigger}>Set</SegmentTriggerEndpointButton>
-                    </InputGroup>
-                </Row>
-            </Stack>
+                            <SegmentSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/segment_readout/SEGMENT_SELECT" buttonText={current_segment === 20 ? "All Segments" : "Segment " + current_segment} variant="primary" >
+                                <Dropdown.Item eventKey={20}>All Segments</Dropdown.Item>
+                                <Dropdown.Item eventKey={0}>Segment 0</Dropdown.Item>
+                                <Dropdown.Item eventKey={1}>Segment 1</Dropdown.Item>
+                                <Dropdown.Item eventKey={2}>Segment 2</Dropdown.Item>
+                                <Dropdown.Item eventKey={3}>Segment 3</Dropdown.Item>
+                                <Dropdown.Item eventKey={4}>Segment 4</Dropdown.Item>
+                                <Dropdown.Item eventKey={5}>Segment 5</Dropdown.Item>
+                                <Dropdown.Item eventKey={6}>Segment 6</Dropdown.Item>
+                                <Dropdown.Item eventKey={7}>Segment 7</Dropdown.Item>
+                                <Dropdown.Item eventKey={8}>Segment 8</Dropdown.Item>
+                                <Dropdown.Item eventKey={9}>Segment 9</Dropdown.Item>
+                                <Dropdown.Item eventKey={10}>Segment 10</Dropdown.Item>
+                                <Dropdown.Item eventKey={11}>Segment 11</Dropdown.Item>
+                                <Dropdown.Item eventKey={12}>Segment 12</Dropdown.Item>
+                                <Dropdown.Item eventKey={13}>Segment 13</Dropdown.Item>
+                                <Dropdown.Item eventKey={14}>Segment 14</Dropdown.Item>
+                                <Dropdown.Item eventKey={15}>Segment 15</Dropdown.Item>
+                                <Dropdown.Item eventKey={16}>Segment 16</Dropdown.Item>
+                                <Dropdown.Item eventKey={17}>Segment 17</Dropdown.Item>
+                                <Dropdown.Item eventKey={18}>Segment 18</Dropdown.Item>
+                                <Dropdown.Item eventKey={19}>Segment 19</Dropdown.Item>
+                            </SegmentSelectDropdown>
+                        </Col>
+                        <Col>
+                            <ReadoutStartEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/asic_settings/segment_readout/REQUEST" value={true} variant={request_state === null ? "success" : "outline-primary"}>
+                                {request_state !== null && <Spinner animation="border" size="sm" />}
+                                Request Image
+                            </ReadoutStartEndpointButton>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <InputGroup>
+                            <InputGroup.Text>Pixel Value Trigger</InputGroup.Text>
+                            <Form.Control type="number" onChange={update_segment_trigger} defaultValue={adapterEndpoint?.data?.application?.asic_settings?.segment_readout?.TRIGGER}/>
+                            <SegmentTriggerEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/asic_settings/segment_readout/TRIGGER" value={segment_trigger}>Set</SegmentTriggerEndpointButton>
+                        </InputGroup>
+                    </Row>
+                </Stack>
+            </TitleCard>
+            <TitleCard title="Plot">
+                <Stack>
+                    <Row>
+                        <InputGroup>
+                            <Form.Check label="Auto-scale Colour Range" checked={readout_cbar_autorange} defaultValue={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_autorange(Boolean(event.target.checked))}} />
+                        </InputGroup>
+                        <InputGroup hidden={readout_cbar_autorange}>
+                            <InputGroup.Text>Colour Range</InputGroup.Text>
+                            <Form.Control type="number" disabled={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_min(Number(event.target.value))}} defaultValue={Number(readout_cbar_min)}/>
+                            <Form.Control type="number" disabled={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_max(Number(event.target.value))}} defaultValue={Number(readout_cbar_max)}/>
+                        </InputGroup>
+                    </Row>
+                </Stack>
+            </TitleCard>
         </TitleCard>
     )
 }
 
 const CalibrationEnableEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
 const CalModeDropdown = WithEndpoint(DropdownSelector);
-function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en}) {
+function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en, cal_dat}) {
     if (!asic_init) {
         return (<></>);
     }
 
-    let cal_dat = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.DIRECT_MAP;
     let cal_mode_info = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.MODES;
     let cal_mode_current = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.MODE;
 
     let cal_mode_names = Object.keys(cal_mode_info);
-    console.log('cal_mode_names ' + cal_mode_names);
+    console.debug('cal_mode_names ' + cal_mode_names);
     let cal_dropdown_items = cal_mode_names.map((cal_mode_name) => {
         return (
             <Dropdown.Item eventKey={cal_mode_name}>{cal_mode_name}</Dropdown.Item>
         );
     });
-    console.log(cal_dropdown_items);
+    console.debug(cal_dropdown_items);
 
     return (
         <Container>
@@ -1028,7 +1224,7 @@ function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en}) {
                 </Row>
                 <Row>
                     <Col>
-                        {(cal_dat !== undefined && cal_dat !== null) && <OdinGraph title='Calibration Pattern' type='heatmap' prop_data={cal_dat} num_x={80} height={20} width={20} colorscale="Viridis" />}
+                        {(cal_dat !== undefined && cal_dat !== null) && <OdinGraph title='Calibration Pattern' type='heatmap' prop_data={cal_dat} num_x={80} colorscale="Viridis" layout={{'height':400}} />}
                     </Col>
                 </Row>
             </Stack>
