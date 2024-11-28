@@ -18,6 +18,8 @@ import * as Icon from 'react-bootstrap-icons';
 
 // Temporary copy of OdinGraph with PR'ed changes
 import Plot from 'react-plotly.js';
+// Linting disabled as this is intentionally kept in line with odin-react repo copy
+/* eslint-disable */
 function OdinGraph(props) {
 
 
@@ -155,6 +157,7 @@ function OdinGraph(props) {
         <Plot data={data} layout={layout_state} debug={true} onRelayout={zoom_event_handler} config={{responsive: true}} style={{height: '100%', width:'100%'}} useResizeHandler={true}/>
     )
 }
+/* eslint-enable */
 
 function HMHz() {
     const periodicEndpoint = useAdapterEndpoint("lokicarrier", process.env.REACT_APP_ENDPOINT_URL, 1000);
@@ -994,6 +997,7 @@ function HMHzReadoutRender({image_dat, asic_init, cbar_min, cbar_max, cbar_autor
 
         console.debug('updated readout layout: ', layout_new);
         return layout_new;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [cbar_min, cbar_max, cbar_autorange, image_dat]);
 
     if (fakedata) {
