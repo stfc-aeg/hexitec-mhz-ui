@@ -202,6 +202,10 @@ function HMHz() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const image_dat_stable = useMemo(() => image_dat, [JSON.stringify(image_dat)]);
 
+    let cal_dat = periodicEndpoint.data?.application?.asic_settings?.calibration_pattern?.DIRECT_MAP;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const cal_dat_stable = useMemo(() => cal_dat, [JSON.stringify(cal_dat)]);
+
     return (
         <OdinApp title="HEXITEC-MHz UI" navLinks={["HEXITEC-MHz Control", "Debug Info", "LOKI System"]}>
             <Container fluid>
@@ -236,7 +240,7 @@ function HMHz() {
                         </TitleCard>
                     </Col>
                     <Col xxl={4} lg="auto" style={{height: "55vh", overflowY: "auto"}}>
-                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled} peltier_proportion={peltier_proportion} peltier_en={peltier_en} peltier_saved={peltier_saved} />
+                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled} peltier_proportion={peltier_proportion} peltier_en={peltier_en} peltier_saved={peltier_saved} cal_dat={cal_dat_stable}/>
                     </Col>
                 </Row>
             </Container>
@@ -281,7 +285,7 @@ const VCALEndpointButton = WithEndpoint(Button);
 const FrameLengthEndpointButton = WithEndpoint(Button);
 const IntegrationTimeEndpointButton = WithEndpoint(Button);
 const PreAmpCapDropdown = WithEndpoint(DropdownSelector);
-function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled, peltier_proportion, peltier_en, peltier_saved}) {
+function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled, peltier_proportion, peltier_en, peltier_saved, cal_dat}) {
     const [vcal, set_vcal] = useState(null);
     const [frame_length_ui, set_frame_length_ui] = useState(null);
     const [integration_time_ui, set_integration_time_ui] = useState(null);
@@ -428,7 +432,7 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                         </Row>
                     </Accordion.Header>
                     <Accordion.Body>
-                        <HMHzCalpatternRender adapterEndpoint={adapterEndpoint} asic_init={asic_init} cal_en={cal_en}/>
+                        <HMHzCalpatternRender adapterEndpoint={adapterEndpoint} asic_init={asic_init} cal_en={cal_en} cal_dat={cal_dat}/>
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="5">
@@ -1167,12 +1171,11 @@ function HMHzReadoutSettings({adapterEndpoint, asic_init, readout_cbar_min, set_
 
 const CalibrationEnableEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
 const CalModeDropdown = WithEndpoint(DropdownSelector);
-function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en}) {
+function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en, cal_dat}) {
     if (!asic_init) {
         return (<></>);
     }
 
-    let cal_dat = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.DIRECT_MAP;
     let cal_mode_info = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.MODES;
     let cal_mode_current = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.MODE;
 
@@ -1203,7 +1206,7 @@ function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en}) {
                 </Row>
                 <Row>
                     <Col>
-                        {(cal_dat !== undefined && cal_dat !== null) && <OdinGraph title='Calibration Pattern' type='heatmap' prop_data={cal_dat} num_x={80} height={20} width={20} colorscale="Viridis" />}
+                        {(cal_dat !== undefined && cal_dat !== null) && <OdinGraph title='Calibration Pattern' type='heatmap' prop_data={cal_dat} num_x={80} colorscale="Viridis" layout={{'height':400}} />}
                     </Col>
                 </Row>
             </Stack>
