@@ -21,6 +21,9 @@ function HMHz() {
     const [loki_connection_ok, set_loki_connection_ok] = useState(true);
     const [foundLoopException, setFoundLoopException] = useState(false);
     const [all_firefly_channels_enabled, set_all_firefly_channels_enabled] = useState(false);
+    const [readout_cbar_min, set_readout_cbar_min] = useState(null);
+    const [readout_cbar_max, set_readout_cbar_max] = useState(null);
+    const [readout_cbar_autorange, set_readout_cbar_autorange] = useState(true);
 
     let power_board_present = periodicEndpoint.data?.control?.presence_detection.backplane;
     let power_board_init = periodicEndpoint.data?.application?.system_state.POWER_BOARD_INIT;
@@ -82,10 +85,10 @@ function HMHz() {
                         <TitleCard title="Slow Readout">
                             <Row className="justify-content-md-center">
                                 <Col md={8}>
-                                    <HMHzReadoutRender image_dat={image_dat_stable} asic_init={asic_init} fakedata={false}/>
+                                    <HMHzReadoutRender image_dat={image_dat_stable} asic_init={asic_init} cbar_min={readout_cbar_min} cbar_max={readout_cbar_max} cbar_autorange={readout_cbar_autorange} fakedata={false}/>
                                 </Col>
                                 <Col md={4}>
-                                    <HMHzReadoutSettings adapterEndpoint={periodicEndpoint} asic_init={asic_init} />
+                                    <HMHzReadoutSettings adapterEndpoint={periodicEndpoint} asic_init={asic_init} readout_cbar_min={readout_cbar_min} set_readout_cbar_min={set_readout_cbar_min} readout_cbar_max={readout_cbar_max} set_readout_cbar_max={set_readout_cbar_max} readout_cbar_autorange={readout_cbar_autorange} set_readout_cbar_autorange={set_readout_cbar_autorange}/>
                                 </Col>
                             </Row>
                         </TitleCard>
@@ -828,7 +831,7 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
     )
 }
 
-function HMHzReadoutRender({image_dat, asic_init, fakedata=false}) {
+function HMHzReadoutRender({image_dat, asic_init, cbar_min, cbar_max, cbar_autorange, fakedata=false}) {
     if (fakedata) {
         image_dat = [
             Array.from(Array(80), () => Math.round(Math.random()*4095)),
@@ -918,11 +921,22 @@ function HMHzReadoutRender({image_dat, asic_init, fakedata=false}) {
         return (<></>);
     }
 
+    // Override the default layout with a reduced colorscale  range.
+    const layout = {
+        'coloraxis': {
+            'colorscale': 'Viridis',
+        },
+        'height': 500,
+    };
+    if (cbar_min !== null && cbar_min !== '' && cbar_max !== null && cbar_max !== '' && !cbar_autorange) {
+        Object.assign(layout['coloraxis'], {'cmin':cbar_min});
+        Object.assign(layout['coloraxis'], {'cmax':cbar_max});
+    }
 
     return (
         <Row>
             <Col>
-                {(image_dat !== undefined && image_dat !== null) && <OdinGraph title='HEXITEC-MHz Sensor SPI Readback' type='heatmap' prop_data={image_dat} colorscale='Greens' />}
+                {(image_dat !== undefined && image_dat !== null) && <OdinGraph title='HEXITEC-MHz Sensor SPI Readback' type='heatmap' prop_data={image_dat} colorscale='Viridis' layout={layout}/>}
             </Col>
         </Row>
     )
@@ -931,7 +945,7 @@ function HMHzReadoutRender({image_dat, asic_init, fakedata=false}) {
 const ReadoutStartEndpointButton = WithEndpoint(Button);
 const SegmentSelectDropdown = WithEndpoint(DropdownSelector);
 const SegmentTriggerEndpointButton = WithEndpoint(Button);
-function HMHzReadoutSettings({adapterEndpoint, asic_init}) {
+function HMHzReadoutSettings({adapterEndpoint, asic_init, readout_cbar_min, set_readout_cbar_min, readout_cbar_max, set_readout_cbar_max, readout_cbar_autorange, set_readout_cbar_autorange}) {
     const [segment_trigger, set_segment_trigger] = useState(null);
 
     if (!asic_init) {
@@ -987,6 +1001,14 @@ function HMHzReadoutSettings({adapterEndpoint, asic_init}) {
                         <InputGroup.Text>Pixel Value Trigger</InputGroup.Text>
                         <Form.Control type="number" onChange={update_segment_trigger} defaultValue={adapterEndpoint?.data?.application?.asic_settings?.segment_readout?.TRIGGER}/>
                         <SegmentTriggerEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/asic_settings/segment_readout/TRIGGER" value={segment_trigger}>Set</SegmentTriggerEndpointButton>
+                    </InputGroup>
+                </Row>
+                <Row>
+                    <InputGroup>
+                        <Form.Check label="Auto" checked={readout_cbar_autorange} defaultValue={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_autorange(event.target.checked)}} />
+                        <InputGroup.Text>Colour Range</InputGroup.Text>
+                        <Form.Control type="number" disabled={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_min(event.target.value)}} defaultValue={readout_cbar_min}/>
+                        <Form.Control type="number" disabled={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_max(event.target.value)}} defaultValue={readout_cbar_max}/>
                     </InputGroup>
                 </Row>
             </Stack>
