@@ -188,6 +188,7 @@ function HMHz() {
     let diode_temp = periodicEndpoint?.data?.environment?.temperature?.DIODE;
     let asic_init = periodicEndpoint?.data?.application?.system_state.ASIC_INIT;
     let asic_en = periodicEndpoint?.data?.application?.system_state.ASIC_EN;
+    let asic_rebonding = periodicEndpoint?.data?.application?.system_state.ASIC_REBOND;
     let fastdata_init = periodicEndpoint?.data?.application?.system_state.ASIC_FASTDATA_INIT;
     let fastdata_en = periodicEndpoint?.data?.application?.system_state.ASIC_FASTDATA_EN;
     let regs_en = periodicEndpoint?.data?.application?.system_state.REGS_EN;
@@ -219,17 +220,17 @@ function HMHz() {
                     <Col sm={12} xl={4} xxl={2}>
                         <LOKICarrierSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} foundLoopException={foundLoopException}/>
                     </Col>
-                    <Col sm={12} xl={4} xxl="auto">
+                    <Col sm={12} xl={4} xxl="auto" hidden={!loki_connection_ok}>
                         <HMHzPowerBoardSummaryCard loki_connection_state={loki_connection_ok} power_board_present={power_board_present} power_board_init={power_board_init} power_board_temp={power_board_temp} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} regs_en={regs_en} vddd_i={vddd_i} vdda_i={vdda_i} trip_info={trip_info} />
                     </Col>
-                    <Col sm={12} xl={4} xxl={3}>
+                    <Col sm={12} xl={4} xxl={3} hidden={!loki_connection_ok}>
                         <HMHzCOBSummaryCard adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_present={cob_present} cob_init={cob_init} block_temp={block_temp} diode_temp={diode_temp} asic_en={asic_en} asic_init={asic_init} fastdata_init={fastdata_init} fastdata_en={fastdata_en} asic_sync={asic_sync} ff1_pn={ff1_pn} ff2_pn={ff2_pn} />
                     </Col>
-                    <Col sm="auto" xxl={5}>
-                        <HMHzStateControl adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} sys_init_state={sys_init_state} sys_init_state_target={sys_init_state_target} sys_init_progress_perc={sys_init_progress} sys_init_err={sys_init_err} power_board_init={power_board_init} cob_init={cob_init} asic_init={asic_init}/>
+                    <Col sm="auto" xxl={5} hidden={!loki_connection_ok}>
+                        <HMHzStateControl adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} sys_init_state={sys_init_state} sys_init_state_target={sys_init_state_target} sys_init_progress_perc={sys_init_progress} sys_init_err={sys_init_err} power_board_init={power_board_init} cob_init={cob_init} asic_init={asic_init} asic_rebonding={asic_rebonding} />
                     </Col>
                 </Row>
-                <Row>
+                <Row hidden={!loki_connection_ok}>
                     <Col xxl={8} lg={12}>
                         <TitleCard title="Slow Readout">
                             <Row className="justify-content-md-center">
@@ -671,7 +672,8 @@ function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present
 const PowerBoardInitEndpointButton = WithEndpoint(Button);
 const COBInitEndpointButton = WithEndpoint(Button);
 const ASICInitEndpointButton = WithEndpoint(Button);
-function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_progress_perc, sys_init_state, sys_init_state_target, sys_init_err, power_board_init, cob_init, asic_init}) {
+const RebondEndpointButton = WithEndpoint(Button);
+function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_progress_perc, sys_init_state, sys_init_state_target, sys_init_err, power_board_init, cob_init, asic_init, asic_rebonding}) {
     if (!loki_connection_state) {
         return (<></>)
     }
@@ -679,7 +681,7 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
     return (
         <TitleCard title="System Init">
             <Stack gap={1} direction="horizontal">
-                <Stack gap={1}>
+                <Stack gap={2}>
                     <Row>
                         <Col>
                             <ProgressBar now={sys_init_progress_perc} label={sys_init_state} variant={sys_init_err ? "danger" : sys_init_progress_perc === 100 ? "success" : "primary"} striped={sys_init_state !== sys_init_state_target ? true : false} animated={sys_init_state !== sys_init_state_target ? true : false}/>
@@ -691,10 +693,6 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
                                 {sys_init_err}
                             </Alert>
                         </Col>
-                    </Row>
-                        <Col>
-                        </Col>
-                    <Row>
                     </Row>
                     <Row>
                         <Col md="auto">
@@ -717,6 +715,14 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
                                 {sys_init_state === "ASIC_INIT" && <Spinner animation="border" size="sm" />}
                                 {asic_init ? " Re-init ASIC" : " Init ASIC"}
                             </ASICInitEndpointButton>
+                        </Col>
+                    </Row>
+                    <Row className="justify-content-md-center">
+                        <Col md="auto" hidden={!asic_init}>
+                            <RebondEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ASIC_REBOND" value={true} variant={asic_rebonding ? "outline-primary" : "primary"}>
+                                {asic_rebonding && <Spinner animation="border" size="sm" />}
+                                {" Re-bond Serialiser Channels"}
+                            </RebondEndpointButton>
                         </Col>
                     </Row>
                 </Stack>
