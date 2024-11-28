@@ -149,7 +149,7 @@ function OdinGraph(props) {
 
         changeData(data);
 
-    }, [prop_data]);
+    }, [prop_data, layout]);
 
     return (
         <Plot data={data} layout={layout_state} debug={true} onRelayout={zoom_event_handler} config={{responsive: true}} style={{height: '100%', width:'100%'}} useResizeHandler={true}/>
@@ -974,6 +974,24 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
 }
 
 function HMHzReadoutRender({image_dat, asic_init, cbar_min, cbar_max, cbar_autorange, fakedata=false}) {
+    const layout_stable = useMemo(() => {
+        // Override the default layout with a reduced colorscale  range.
+        const layout_new = {
+            'coloraxis': {
+                'colorscale': 'Viridis',
+            },
+            'height': 500,
+        };
+
+        if (cbar_min !== null && cbar_min !== '' && cbar_max !== null && cbar_max !== '' && !cbar_autorange) {
+            Object.assign(layout_new['coloraxis'], {'cmin':Number(cbar_min)});
+            Object.assign(layout_new['coloraxis'], {'cmax':Number(cbar_max)});
+        }
+
+        console.debug('updated readout layout: ', layout_new);
+        return layout_new;
+    }, [cbar_min, cbar_max, cbar_autorange, image_dat]);
+
     if (fakedata) {
         image_dat = [
             Array.from(Array(80), () => Math.round(Math.random()*4095)),
@@ -1060,25 +1078,14 @@ function HMHzReadoutRender({image_dat, asic_init, cbar_min, cbar_max, cbar_autor
     }
 
     if (!asic_init) {
-        return (<></>);
+        return (<Row></Row>);
     }
 
-    // Override the default layout with a reduced colorscale  range.
-    const layout = {
-        'coloraxis': {
-            'colorscale': 'Viridis',
-        },
-        'height': 500,
-    };
-    if (cbar_min !== null && cbar_min !== '' && cbar_max !== null && cbar_max !== '' && !cbar_autorange) {
-        Object.assign(layout['coloraxis'], {'cmin':cbar_min});
-        Object.assign(layout['coloraxis'], {'cmax':cbar_max});
-    }
 
     return (
         <Row>
             <Col>
-                {(image_dat !== undefined && image_dat !== null) && <OdinGraph title='HEXITEC-MHz Sensor SPI Readback' type='heatmap' prop_data={image_dat} colorscale='Viridis' layout={layout}/>}
+                {(image_dat !== undefined && image_dat !== null) && <OdinGraph title='HEXITEC-MHz Sensor SPI Readback' type='heatmap' prop_data={image_dat} colorscale='Viridis' layout={layout_stable}/>}
             </Col>
         </Row>
     )
@@ -1147,10 +1154,10 @@ function HMHzReadoutSettings({adapterEndpoint, asic_init, readout_cbar_min, set_
                 </Row>
                 <Row>
                     <InputGroup>
-                        <Form.Check label="Auto" checked={readout_cbar_autorange} defaultValue={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_autorange(event.target.checked)}} />
+                        <Form.Check label="Auto" checked={readout_cbar_autorange} defaultValue={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_autorange(Boolean(event.target.checked))}} />
                         <InputGroup.Text>Colour Range</InputGroup.Text>
-                        <Form.Control type="number" disabled={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_min(event.target.value)}} defaultValue={readout_cbar_min}/>
-                        <Form.Control type="number" disabled={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_max(event.target.value)}} defaultValue={readout_cbar_max}/>
+                        <Form.Control type="number" disabled={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_min(Number(event.target.value))}} defaultValue={Number(readout_cbar_min)}/>
+                        <Form.Control type="number" disabled={readout_cbar_autorange} onChange={(event) => {set_readout_cbar_max(Number(event.target.value))}} defaultValue={Number(readout_cbar_max)}/>
                     </InputGroup>
                 </Row>
             </Stack>
@@ -1170,13 +1177,13 @@ function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en}) {
     let cal_mode_current = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.MODE;
 
     let cal_mode_names = Object.keys(cal_mode_info);
-    console.log('cal_mode_names ' + cal_mode_names);
+    console.debug('cal_mode_names ' + cal_mode_names);
     let cal_dropdown_items = cal_mode_names.map((cal_mode_name) => {
         return (
             <Dropdown.Item eventKey={cal_mode_name}>{cal_mode_name}</Dropdown.Item>
         );
     });
-    console.log(cal_dropdown_items);
+    console.debug(cal_dropdown_items);
 
     return (
         <Container>
