@@ -10,7 +10,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch, StatusBox, DropdownSelector} from 'odin-react';
 import 'odin-react/dist/index.css'
 
-import {LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, LOKICarrierSummaryCard, StatusBadge} from './Loki.js'
+import {LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, StatusBadge} from './Loki.js'
 
 import {Row, Col, Container, ProgressBar, Alert, Button, Spinner, Stack, Accordion, InputGroup, Form, Dropdown} from 'react-bootstrap'
 import * as Icon from 'react-bootstrap-icons';
@@ -219,6 +219,11 @@ function HMHz() {
             <Container fluid>
                 <Row>
                     <LOKIConnectionAlert adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} set_loki_connection_state={set_loki_connection_ok} />
+                </Row>
+                <Row>
+                    <Alert variant="danger" show={foundLoopException}>
+                        Loop error detected in LOKI system
+                    </Alert>
                 </Row>
                 <Row className="justify-content-md-center">
                     <Col sm={12} xl={4} xxl="auto" hidden={!loki_connection_ok}>
@@ -745,7 +750,7 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
                                 {sys_init_message}
                             </Alert>
                         </Col>
-                        <Col md="auto" hidden={!(sys_init_state == "ASIC_DONE") || !(asic_init)}>
+                        <Col md="auto" hidden={!(sys_init_state === "ASIC_DONE") || !(asic_init)}>
                             <RebondEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/system_state/ASIC_REBOND" value={true} variant={asic_rebonding ? "outline-primary" : "primary"} size="sm">
                                 {asic_rebonding && <Spinner animation="border" size="sm" />}
                                 {" Re-bond"}
