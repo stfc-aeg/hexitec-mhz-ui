@@ -290,6 +290,7 @@ const VCALEndpointButton = WithEndpoint(Button);
 const FrameLengthEndpointButton = WithEndpoint(Button);
 const IntegrationTimeEndpointButton = WithEndpoint(Button);
 const PreAmpCapDropdown = WithEndpoint(DropdownSelector);
+const PreAmpNegRangeDropdown = WithEndpoint(DropdownSelector);
 function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled, peltier_proportion, peltier_en, peltier_saved, cal_dat}) {
     const [vcal, set_vcal] = useState(null);
     const [frame_length_ui, set_frame_length_ui] = useState(null);
@@ -313,6 +314,8 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
 
     let feedback_capacitance = adapterEndpoint?.data?.application?.asic_settings?.feedback_capacitance;
     let feedback_gain = adapterEndpoint?.data?.application?.asic_settings?.feedback_gain;
+    let negative_range = adapterEndpoint?.data?.application?.asic_settings?.negative_range;
+    let negative_range_name = adapterEndpoint?.data?.application?.asic_settings?.negative_range_name;
     let frame_length = adapterEndpoint?.data?.application?.asic_settings?.frame_length;
     let integration_time = adapterEndpoint?.data?.application?.asic_settings?.integration_time;
     let cal_en = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.ENABLE;
@@ -354,7 +357,10 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                                 Pre-Amplifier
                             </Col>
                             <Col md="auto" hidden={!asic_init}>
-                                <StatusBadge label={feedback_capacitance + " fF"} type={feedback_capacitance ? "primary" : "warning"}/>
+                                <StatusBadge label={feedback_capacitance + " fF (" + feedback_gain + ")"} type={feedback_capacitance ? "primary" : "warning"}/>
+                            </Col>
+                            <Col md="auto" hidden={!asic_init}>
+                                <StatusBadge label={negative_range + " keV (" + negative_range_name + ")"} type={negative_range ? "primary" : "warning"}/>
                             </Col>
                         </Row>
                     </Accordion.Header>
@@ -366,6 +372,12 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                                     <Dropdown.Item eventKey={14}>14fF</Dropdown.Item>
                                     <Dropdown.Item eventKey={21}>21fF</Dropdown.Item>
                                 </PreAmpCapDropdown>
+                            </Col>
+                            <Col md="auto" hidden={!asic_init}>
+                                <PreAmpNegRangeDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/negative_range" buttonText={Math.round(negative_range) + "keV (" + negative_range_name + ")"} variant="primary" >
+                                    <Dropdown.Item eventKey={-20}>-20keV</Dropdown.Item>
+                                    <Dropdown.Item eventKey={-10}>-10keV</Dropdown.Item>
+                                </PreAmpNegRangeDropdown>
                             </Col>
                         </Row>
                     </Accordion.Body>
