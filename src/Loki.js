@@ -394,7 +394,7 @@ function LOKICPUInfo({cpuInfo, show_cpu_times=true, show_cpu_times_graph=true}) 
         <TitleCard title="LOKI CPU Info">
             <Row>
                 <Col>
-                    <StatusBox label="CPU Load">{cpuInfo?.load}</StatusBox>
+                    <StatusBox label="CPU Load">{Number(cpuInfo?.load[0]).toPrecision(2)}</StatusBox>
                 </Col>
                 <Col>
                     <StatusBox label="CPU Perc">{cpuInfo?.percent + "%"}</StatusBox>
