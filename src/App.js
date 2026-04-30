@@ -319,8 +319,10 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
 
     let feedback_capacitance = adapterEndpoint?.data?.application?.asic_settings?.feedback_capacitance;
     let feedback_gain = adapterEndpoint?.data?.application?.asic_settings?.feedback_gain;
-    let negative_range = adapterEndpoint?.data?.application?.asic_settings?.negative_range;
-    let negative_range_name = adapterEndpoint?.data?.application?.asic_settings?.negative_range_name;
+    let negative_range_lowhigh = adapterEndpoint?.data?.application?.asic_settings?.negative_range_lowhigh;
+    let negative_range_kev = adapterEndpoint?.data?.application?.asic_settings?.negative_range_kev;
+    let negative_range_low_kev = adapterEndpoint?.data?.application?.asic_settings?.negative_range_options?.low;
+    let negative_range_high_kev = adapterEndpoint?.data?.application?.asic_settings?.negative_range_options?.high;
     let frame_length = adapterEndpoint?.data?.application?.asic_settings?.frame_length;
     let integration_time = adapterEndpoint?.data?.application?.asic_settings?.integration_time;
     let cal_en = adapterEndpoint.data?.application?.asic_settings?.calibration_pattern?.ENABLE;
@@ -365,7 +367,7 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                                 <StatusBadge label={feedback_capacitance + " fF (" + feedback_gain + ")"} type={feedback_capacitance ? "primary" : "warning"}/>
                             </Col>
                             <Col md="auto" hidden={!asic_init}>
-                                <StatusBadge label={negative_range + " keV (" + negative_range_name + ")"} type={negative_range ? "primary" : "warning"}/>
+                                <StatusBadge label={negative_range_kev + " keV (" + negative_range_lowhigh + ")"} type={negative_range_kev ? "primary" : "warning"}/>
                             </Col>
                         </Row>
                     </Accordion.Header>
@@ -379,9 +381,9 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                                 </PreAmpCapDropdown>
                             </Col>
                             <Col md="auto" hidden={!asic_init}>
-                                <PreAmpNegRangeDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/negative_range" buttonText={Math.round(negative_range) + "keV (" + negative_range_name + ")"} variant="primary" >
-                                    <Dropdown.Item eventKey={-20}>-20keV</Dropdown.Item>
-                                    <Dropdown.Item eventKey={-10}>-10keV</Dropdown.Item>
+                                <PreAmpNegRangeDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/negative_range_lowhigh" buttonText={negative_range_kev + "keV (" + negative_range_lowhigh + ")"} variant="primary" >
+                                    <Dropdown.Item eventKey={'low'}>{negative_range_low_kev}keV (low)</Dropdown.Item>
+                                    <Dropdown.Item eventKey={'high'}>{negative_range_high_kev}keV (high)</Dropdown.Item>
                                 </PreAmpNegRangeDropdown>
                             </Col>
                         </Row>
@@ -546,9 +548,7 @@ function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, 
                     <Col md="auto">
                         {(dew_point === null) && <StatusBadge label={"?"} type="warning"/>}
                         {(dew_point !== null) && <StatusBadge label={Math.round(dew_point) + "\u00b0C"} type="primary" />}
-                        (
-                        <StatusBadge label={Math.round(humidity_rh) + "%"} />
-                        )
+                        {" (" + Math.round(humidity_rh) + " %RH)"}
                     </Col>
                 </Row>
                 <Row>
