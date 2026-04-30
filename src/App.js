@@ -484,17 +484,17 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                                 <StatusBadge label={peltier_en ? "On" : "Disabled"} type={peltier_en ? "success" : "warning"}/>
                             </Col>
                             <Col md="auto" hidden={!(power_board_init)}>
-                                <StatusBadge label={peltier_mode} type={peltier_mode == 'pid' ? "success" : "warning"}/>
+                                <StatusBadge label={peltier_mode} type={peltier_mode === 'pid' ? "success" : "warning"}/>
                             </Col>
                             <Col md="auto" hidden={!(power_board_init && peltier_en)}>
                                 <StatusBadge label={Math.round(peltier_proportion*100) + "%"} type="primary"/>
                             </Col>
-                            { peltier_mode == "manual" && (
+                            { peltier_mode === "manual" && (
                                 <Col md="auto" hidden={!power_board_init}>
                                     <StatusBadge label={peltier_saved ? "" : (<><Icon.Save /><span>&nbsp;unsaved</span></>)} type="danger" />
                                 </Col>
                             )}
-                            { peltier_mode == "pid" && peltier_status !== undefined && (
+                            { peltier_mode === "pid" && peltier_status !== undefined && (
                                 <Col md="auto" hidden={!(power_board_init)}>
                                     <StatusBadge label={peltier_status} type={['overdriven','underdriven'].includes(peltier_status) ? "success" : "danger"}/>
                                 </Col>
@@ -1042,7 +1042,7 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
                         </PeltierProportionDropdown>
                     </Col>
                 </Row>
-                {peltier_info.mode=='manual' && (
+                {peltier_info.mode==='manual' && (
                     <Row className="justify-content-md-center">
                         <Col md="auto">
                             <PeltierProportionDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/proportion" buttonText={"Proportion: " + Math.round(peltier_info.proportion*100) + "%"} variant="primary" >
@@ -1072,7 +1072,7 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
                         </SavePeltierEndpointButton>
                     </Row>
                 )}
-                {peltier_info.mode=='pid' && (
+                {peltier_info.mode==='pid' && (
                     <Row className="justify-content-md-center">
                         <Col>
                             <Stack gap={2} direction="vertial">
@@ -1112,7 +1112,7 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
                                     <InputGroup>
                                         <InputGroup.Text>Kd</InputGroup.Text>
                                         <Form.Control type="number" onChange={update_target_peltier_kd} defaultValue={peltier_info?.pid_kd} step={0.001}/>
-                                        <BiasTargetEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/peltier/pid_kd" value={target_peltier_ki}>Set</BiasTargetEndpointButton>
+                                        <BiasTargetEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/peltier/pid_kd" value={target_peltier_kd}>Set</BiasTargetEndpointButton>
                                     </InputGroup>
                                 </Row>
                             </Stack>
