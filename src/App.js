@@ -201,6 +201,8 @@ function HMHz() {
     let peltier_proportion = periodicEndpoint?.data?.application?.peltier?.proportion;
     let peltier_en = periodicEndpoint?.data?.application?.peltier?.enable;
     let peltier_saved = periodicEndpoint?.data?.application?.peltier?.proportion_save;
+    let peltier_mode = periodicEndpoint?.data?.application?.peltier?.mode;
+    let peltier_status = periodicEndpoint?.data?.application?.peltier?.pid_state;
     let trip_info = periodicEndpoint?.data?.application?.monitoring?.TRIPS;
     let vddd_i = periodicEndpoint?.data?.application?.monitoring?.VDDD_I;
     let vdda_i = periodicEndpoint?.data?.application?.monitoring?.VDDA_I;
@@ -250,7 +252,7 @@ function HMHz() {
                         </TitleCard>
                     </Col>
                     <Col xxl={4} lg="auto" style={{height: "55vh", overflowY: "auto"}}>
-                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled} peltier_proportion={peltier_proportion} peltier_en={peltier_en} peltier_saved={peltier_saved} cal_dat={cal_dat_stable}/>
+                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled} peltier_proportion={peltier_proportion} peltier_en={peltier_en} peltier_saved={peltier_saved} peltier_mode={peltier_mode} peltier_status={peltier_status} cal_dat={cal_dat_stable}/>
                     </Col>
                 </Row>
             </Container>
@@ -296,7 +298,7 @@ const FrameLengthEndpointButton = WithEndpoint(Button);
 const IntegrationTimeEndpointButton = WithEndpoint(Button);
 const PreAmpCapDropdown = WithEndpoint(DropdownSelector);
 const PreAmpNegRangeDropdown = WithEndpoint(DropdownSelector);
-function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled, peltier_proportion, peltier_en, peltier_saved, cal_dat}) {
+function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled, peltier_proportion, peltier_en, peltier_saved, peltier_mode, peltier_status, cal_dat}) {
     const [vcal, set_vcal] = useState(null);
     const [frame_length_ui, set_frame_length_ui] = useState(null);
     const [integration_time_ui, set_integration_time_ui] = useState(null);
@@ -481,12 +483,22 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                             <Col md="auto" hidden={!(power_board_init)}>
                                 <StatusBadge label={peltier_en ? "On" : "Disabled"} type={peltier_en ? "success" : "warning"}/>
                             </Col>
+                            <Col md="auto" hidden={!(power_board_init)}>
+                                <StatusBadge label={peltier_mode} type={peltier_mode == 'pid' ? "success" : "warning"}/>
+                            </Col>
                             <Col md="auto" hidden={!(power_board_init && peltier_en)}>
                                 <StatusBadge label={Math.round(peltier_proportion*100) + "%"} type="primary"/>
                             </Col>
-                            <Col md="auto" hidden={!power_board_init}>
-                                <StatusBadge label={peltier_saved ? "" : (<><Icon.Save /><span>&nbsp;unsaved</span></>)} type="danger" />
-                            </Col>
+                            { peltier_mode == "manual" && (
+                                <Col md="auto" hidden={!power_board_init}>
+                                    <StatusBadge label={peltier_saved ? "" : (<><Icon.Save /><span>&nbsp;unsaved</span></>)} type="danger" />
+                                </Col>
+                            )}
+                            { peltier_mode == "pid" && peltier_status !== undefined && (
+                                <Col md="auto" hidden={!(power_board_init)}>
+                                    <StatusBadge label={peltier_status} type={['overdriven','underdriven'].includes(peltier_status) ? "success" : "danger"}/>
+                                </Col>
+                            )}
                         </Row>
                     </Accordion.Header>
                     <Accordion.Body>
@@ -976,44 +988,139 @@ const PeltierEnEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
 const SavePeltierEndpointButton = WithEndpoint(Button);
 const PeltierProportionDropdown = WithEndpoint(DropdownSelector);
 function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, power_board_init}) {
+    const [target_peltier_temperature, set_target_peltier_temperature] = useState(null);
+    const [target_peltier_kp, set_target_peltier_kp] = useState(null);
+    const [target_peltier_ki, set_target_peltier_ki] = useState(null);
+    const [target_peltier_kd, set_target_peltier_kd] = useState(null);
 
     if (!power_board_init) {
         return (<></>);
     }
 
+    let show_pid_params = true;
+
     let peltier_info = adapterEndpoint?.data?.application?.peltier;
+
+    let modes_avail_dropdown_items = peltier_info.modes_available.map((mode_name) => {
+        return (
+            <Dropdown.Item eventKey={mode_name}>{mode_name}</Dropdown.Item>
+        );
+    });
+
+    let pid_sensors_avail_dropdown_items = peltier_info.pid_target_sensors_available.map((sensor_name) => {
+        return (
+            <Dropdown.Item eventKey={sensor_name}>{sensor_name}</Dropdown.Item>
+        );
+    });
+
+    const update_target_peltier_temperature = (event) => {
+        set_target_peltier_temperature(+event.target.value);
+    }
+
+    const update_target_peltier_kp = (event) => {
+        set_target_peltier_kp(+event.target.value);
+    }
+
+    const update_target_peltier_ki = (event) => {
+        set_target_peltier_ki(+event.target.value);
+    }
+
+    const update_target_peltier_kd = (event) => {
+        set_target_peltier_kd(+event.target.value);
+    }
 
     return (
         <Container>
-            <Row className="justify-content-md-center">
-                <PeltierEnEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Peltier Enable" fullpath="application/peltier/enable" checked={peltier_info?.enable} value={peltier_info?.enable} />
-                <Col md="auto">
-                    <PeltierProportionDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/proportion" buttonText={"Proportion: " + Math.round(peltier_info.proportion*100) + "%"} variant="primary" >
-                        <Dropdown.Item eventKey={0.2}>20%</Dropdown.Item>
-                        <Dropdown.Item eventKey={0.4}>40%</Dropdown.Item>
-                        <Dropdown.Item eventKey={0.45}>45%</Dropdown.Item>
-                        <Dropdown.Item eventKey={0.5}>50%</Dropdown.Item>
-                        <Dropdown.Item eventKey={0.55}>55%</Dropdown.Item>
-                        <Dropdown.Item eventKey={0.60}>60%</Dropdown.Item>
-                        <Dropdown.Item eventKey={0.65}>65%</Dropdown.Item>
-                        <Dropdown.Item eventKey={0.70}>70%</Dropdown.Item>
-                        <Dropdown.Item eventKey={0.75}>75%</Dropdown.Item>
-                        <Dropdown.Item eventKey={0.80}>80%</Dropdown.Item>
-                    </PeltierProportionDropdown>
-                </Col>
-                <Col md="auto">
-                    <StatusBox label="Count">{peltier_info.count}</StatusBox>
-                </Col>
-                <Col md="auto">
-                    <StatusBox label="Set Temperature">{peltier_info.temperature}</StatusBox>
-                </Col>
-                <SavePeltierEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/peltier/proportion_save" value={true} variant={peltier_info?.proportion_save ? "success" : "danger"}>
-                    {!peltier_info?.proportion_save && <Spinner animation="grow" size="sm" />}
-                    {peltier_info?.proportion_save ? " Saved " : " Save "}
-                    {peltier_info?.proportion_save ? <Icon.Check size={20}/> : <></>}
-                    {!peltier_info?.proportion_save && <Spinner animation="grow" size="sm" />}
-                </SavePeltierEndpointButton>
-            </Row>
+            <Stack gap={2} direction="vertial">
+                <Row className="justify-content-md-center">
+                    <Col md="auto">
+                        <PeltierEnEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Peltier Enable" fullpath="application/peltier/enable" checked={peltier_info?.enable} value={peltier_info?.enable} />
+                    </Col>
+                    <Col md="auto">
+                        <PeltierProportionDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/mode" buttonText={"Mode: " + peltier_info.mode } variant="primary" >
+                            {modes_avail_dropdown_items}
+                        </PeltierProportionDropdown>
+                    </Col>
+                </Row>
+                {peltier_info.mode=='manual' && (
+                    <Row className="justify-content-md-center">
+                        <Col md="auto">
+                            <PeltierProportionDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/proportion" buttonText={"Proportion: " + Math.round(peltier_info.proportion*100) + "%"} variant="primary" >
+                                <Dropdown.Item eventKey={0.2}>20%</Dropdown.Item>
+                                <Dropdown.Item eventKey={0.4}>40%</Dropdown.Item>
+                                <Dropdown.Item eventKey={0.45}>45%</Dropdown.Item>
+                                <Dropdown.Item eventKey={0.5}>50%</Dropdown.Item>
+                                <Dropdown.Item eventKey={0.55}>55%</Dropdown.Item>
+                                <Dropdown.Item eventKey={0.60}>60%</Dropdown.Item>
+                                <Dropdown.Item eventKey={0.65}>65%</Dropdown.Item>
+                                <Dropdown.Item eventKey={0.70}>70%</Dropdown.Item>
+                                <Dropdown.Item eventKey={0.75}>75%</Dropdown.Item>
+                                <Dropdown.Item eventKey={0.80}>80%</Dropdown.Item>
+                            </PeltierProportionDropdown>
+                        </Col>
+                        <Col md="auto">
+                            <StatusBox label="Count">{peltier_info.count}</StatusBox>
+                        </Col>
+                        <Col md="auto">
+                            <StatusBox label="Set Temperature">{peltier_info.temperature}</StatusBox>
+                        </Col>
+                        <SavePeltierEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/peltier/proportion_save" value={true} variant={peltier_info?.proportion_save ? "success" : "danger"}>
+                            {!peltier_info?.proportion_save && <Spinner animation="grow" size="sm" />}
+                            {peltier_info?.proportion_save ? " Saved " : " Save "}
+                            {peltier_info?.proportion_save ? <Icon.Check size={20}/> : <></>}
+                            {!peltier_info?.proportion_save && <Spinner animation="grow" size="sm" />}
+                        </SavePeltierEndpointButton>
+                    </Row>
+                )}
+                {peltier_info.mode=='pid' && (
+                    <Row className="justify-content-md-center">
+                        <Col>
+                            <Stack gap={2} direction="vertial">
+                                <Row>
+                                    <InputGroup>
+                                        <InputGroup.Text>Target</InputGroup.Text>
+                                        <Form.Control type="number" onChange={update_target_peltier_temperature} defaultValue={peltier_info?.temperature} step={0.1}/>
+                                        <InputGroup.Text>C</InputGroup.Text>
+                                        <BiasTargetEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/peltier/temperature" value={target_peltier_temperature}>Set</BiasTargetEndpointButton>
+                                    </InputGroup>
+                                </Row>
+                                <Row>
+                                    <PeltierProportionDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/pid_target_sensor" buttonText={"Sensor: " + peltier_info.pid_target_sensor } variant="primary" >
+                                        {pid_sensors_avail_dropdown_items}
+                                    </PeltierProportionDropdown>
+                                </Row>
+                            </Stack>
+                        </Col>
+                        { show_pid_params && (
+                        <Col>
+                            <Stack gap={2} direction="vertial">
+                                <Row>
+                                    <InputGroup>
+                                        <InputGroup.Text>Kp</InputGroup.Text>
+                                        <Form.Control type="number" onChange={update_target_peltier_kp} defaultValue={peltier_info?.pid_kp} step={0.001}/>
+                                        <BiasTargetEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/peltier/pid_kp" value={target_peltier_kp}>Set</BiasTargetEndpointButton>
+                                    </InputGroup>
+                                </Row>
+                                <Row>
+                                    <InputGroup>
+                                        <InputGroup.Text>Ki</InputGroup.Text>
+                                        <Form.Control type="number" onChange={update_target_peltier_ki} defaultValue={peltier_info?.pid_ki} step={0.001}/>
+                                        <BiasTargetEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/peltier/pid_ki" value={target_peltier_ki}>Set</BiasTargetEndpointButton>
+                                    </InputGroup>
+                                </Row>
+                                <Row>
+                                    <InputGroup>
+                                        <InputGroup.Text>Kd</InputGroup.Text>
+                                        <Form.Control type="number" onChange={update_target_peltier_kd} defaultValue={peltier_info?.pid_kd} step={0.001}/>
+                                        <BiasTargetEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/peltier/pid_kd" value={target_peltier_ki}>Set</BiasTargetEndpointButton>
+                                    </InputGroup>
+                                </Row>
+                            </Stack>
+                        </Col>
+                        )}
+                    </Row>
+                )}
+            </Stack>
         </Container>
     )
 }
@@ -1235,7 +1342,7 @@ function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en, cal_dat}) {
 
     return (
         <Container>
-            <Stack gap={1} direction="vertical">
+            <Stack gap={2} direction="vertical">
                 <Row className="justify-content-md-center">
                     <Col>
                     <CalibrationEnableEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Calibration Pattern Enable" fullpath="application/asic_settings/calibration_pattern/ENABLE" checked={cal_en} value={cal_en} />
