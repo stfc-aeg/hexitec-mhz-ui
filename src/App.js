@@ -194,6 +194,7 @@ function HMHz() {
     let asic_rebonding = periodicEndpoint?.data?.application?.system_state.ASIC_REBOND;
     let fastdata_init = periodicEndpoint?.data?.application?.system_state.ASIC_FASTDATA_INIT;
     let fastdata_en = periodicEndpoint?.data?.application?.system_state.ASIC_FASTDATA_EN;
+    let fastdata_ignore_fireflies = periodicEndpoint?.data?.application?.system_state.FASTDATA_IGNORE_FIREFLIES;
     let regs_en = periodicEndpoint?.data?.application?.system_state.REGS_EN;
     let asic_sync = periodicEndpoint?.data?.application?.system_state.SYNC;
     let ff1_pn = periodicEndpoint?.data?.application?.firefly?.ch00to09?.PARTNUMBER;
@@ -253,7 +254,7 @@ function HMHz() {
                         </TitleCard>
                     </Col>
                     <Col xxl={4} lg="auto" style={{height: "55vh", overflowY: "auto"}}>
-                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled} peltier_proportion={peltier_proportion} peltier_en={peltier_en} peltier_saved={peltier_saved} peltier_mode={peltier_mode} peltier_status={peltier_status} peltier_target={peltier_target} cal_dat={cal_dat_stable}/>
+                        <HMHzAdvancedSettings adapterEndpoint={periodicEndpoint} loki_connection_state={loki_connection_ok} cob_init={cob_init} asic_init={asic_init} power_board_init={power_board_init} hv_enabled={hv_enabled} hv_bias_readback={hv_bias_readback} hv_saved={hv_saved} hv_overridden={hv_overridden} hv_mismatch={hv_mismatch} all_firefly_channels_enabled={all_firefly_channels_enabled} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled} peltier_proportion={peltier_proportion} peltier_en={peltier_en} peltier_saved={peltier_saved} peltier_mode={peltier_mode} peltier_status={peltier_status} peltier_target={peltier_target} cal_dat={cal_dat_stable} fastdata_ignore_fireflies={fastdata_ignore_fireflies}/>
                     </Col>
                 </Row>
             </Container>
@@ -299,7 +300,8 @@ const FrameLengthEndpointButton = WithEndpoint(Button);
 const IntegrationTimeEndpointButton = WithEndpoint(Button);
 const PreAmpCapDropdown = WithEndpoint(DropdownSelector);
 const PreAmpNegRangeDropdown = WithEndpoint(DropdownSelector);
-function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled, peltier_proportion, peltier_en, peltier_saved, peltier_mode, peltier_status, peltier_target, cal_dat}) {
+const FireflyIgnoreToggleSwitch = WithEndpoint(ToggleSwitch);
+function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled, peltier_proportion, peltier_en, peltier_saved, peltier_mode, peltier_status, peltier_target, cal_dat, fastdata_ignore_fireflies}) {
     const [vcal, set_vcal] = useState(null);
     const [frame_length_ui, set_frame_length_ui] = useState(null);
     const [integration_time_ui, set_integration_time_ui] = useState(null);
@@ -468,13 +470,27 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                             <Col md="auto">
                                 Channel Config
                             </Col>
-                            <Col md="auto" hidden={all_firefly_channels_enabled || !asic_init}>
+                            <Col md="auto" hidden={fastdata_ignore_fireflies || all_firefly_channels_enabled || !asic_init}>
                                 <StatusBadge label={(<><Icon.ExclamationTriangleFill /><span>&nbsp;Some FireFly Channels Disabled</span></>)} type="danger"/>
+                            </Col>
+                            <Col md="auto" hidden={!fastdata_ignore_fireflies}>
+                                <StatusBadge label={(<><Icon.ExclamationTriangleFill /><span>&nbsp;Fireflies ignored - will not monitor</span></>)} type="danger"/>
                             </Col>
                         </Row>
                     </Accordion.Header>
                     <Accordion.Body>
-                        <HMHzChannelControl adapterEndpoint={adapterEndpoint} loki_connection_state={loki_connection_state} cob_init={cob_init} asic_init={asic_init} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled}/>
+                        <Stack gap={1}>
+                            <Row>
+                                <Col md={12}>
+                                    <FireflyIgnoreToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Ignore Fireflies" fullpath="application/system_state/FASTDATA_IGNORE_FIREFLIES" checked={adapterEndpoint.data.application?.system_state?.FASTDATA_IGNORE_FIREFLIES} value={adapterEndpoint.data.application?.system_state?.FASTDATA_IGNORE_FIREFLIES} />
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col>
+                                    <HMHzChannelControl adapterEndpoint={adapterEndpoint} loki_connection_state={loki_connection_state} cob_init={cob_init} asic_init={asic_init} set_all_firefly_channels_enabled={set_all_firefly_channels_enabled}/>
+                                </Col>
+                            </Row>
+                        </Stack>
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="6">
