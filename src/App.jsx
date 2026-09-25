@@ -379,14 +379,14 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                     <Accordion.Body>
                         <Row className="justify-content-md-center">
                             <Col md="auto" hidden={!asic_init}>
-                                <PreAmpCapDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/feedback_capacitance" buttonText={Math.round(feedback_capacitance) + "fF (" + feedback_gain + ")"} variant="primary" >
+                                <PreAmpCapDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/feedback_capacitance" title={Math.round(feedback_capacitance) + "fF (" + feedback_gain + ")"} variant="primary" >
                                     <Dropdown.Item eventKey={7}>7fF</Dropdown.Item>
                                     <Dropdown.Item eventKey={14}>14fF</Dropdown.Item>
                                     <Dropdown.Item eventKey={21}>21fF</Dropdown.Item>
                                 </PreAmpCapDropdown>
                             </Col>
                             <Col md="auto" hidden={!asic_init}>
-                                <PreAmpNegRangeDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/negative_range_lowhigh" buttonText={negative_range_kev + "keV (" + negative_range_lowhigh + ")"} variant="primary" >
+                                <PreAmpNegRangeDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/negative_range_lowhigh" title={negative_range_kev + "keV (" + negative_range_lowhigh + ")"} variant="primary" >
                                     <Dropdown.Item eventKey={'low'}>{negative_range_low_kev}keV (low)</Dropdown.Item>
                                     <Dropdown.Item eventKey={'high'}>{negative_range_high_kev}keV (high)</Dropdown.Item>
                                 </PreAmpNegRangeDropdown>
@@ -1066,7 +1066,7 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
                         <PeltierEnEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Peltier Enable" fullpath="application/peltier/enable" checked={peltier_info?.enable} value={peltier_info?.enable} />
                     </Col>
                     <Col md="auto">
-                        <PeltierDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/mode" buttonText={"Mode: " + peltier_info.mode } variant="primary" >
+                        <PeltierDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/mode" title={"Mode: " + peltier_info.mode } variant="primary" >
                             {modes_avail_dropdown_items}
                         </PeltierDropdown>
                     </Col>
@@ -1109,7 +1109,7 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
                                     </InputGroup>
                                 </Row>
                                 <Row>
-                                    <PeltierDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/pid_target_sensor" buttonText={"Sensor: " + peltier_info.pid_target_sensor } variant="primary" >
+                                    <PeltierDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/pid_target_sensor" title={"Sensor: " + peltier_info.pid_target_sensor } variant="primary" >
                                         {pid_sensors_avail_dropdown_items}
                                     </PeltierDropdown>
                                 </Row>
@@ -1287,7 +1287,7 @@ function HMHzReadoutSettings({adapterEndpoint, asic_init, readout_cbar_min, set_
                     <Row>
                         <Col>
 
-                            <SegmentSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/segment_readout/SEGMENT_SELECT" buttonText={current_segment === 20 ? "All Segments" : "Segment " + current_segment} variant="primary" >
+                            <SegmentSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/segment_readout/SEGMENT_SELECT" title={current_segment === 20 ? "All Segments" : "Segment " + current_segment} variant="primary" >
                                 <Dropdown.Item eventKey={20}>All Segments</Dropdown.Item>
                                 <Dropdown.Item eventKey={0}>Segment 0</Dropdown.Item>
                                 <Dropdown.Item eventKey={1}>Segment 1</Dropdown.Item>
@@ -1372,7 +1372,7 @@ function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en, cal_dat}) {
                     <CalibrationEnableEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Calibration Pattern Enable" fullpath="application/asic_settings/calibration_pattern/ENABLE" checked={cal_en} value={cal_en} />
                     </Col>
                     <Col>
-                        <CalModeDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/calibration_pattern/MODE" buttonText={"Mode: " + cal_mode_current} variant="primary" >
+                        <CalModeDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/calibration_pattern/MODE" title={"Mode: " + cal_mode_current} variant="primary" >
                             {cal_dropdown_items}
                         </CalModeDropdown>
                     </Col>
@@ -1402,7 +1402,7 @@ function HMHzCalpatternPresetConfig({adapterEndpoint, presetConfig}) {
 
     return (
         <TitleCard title="Preset Config">
-            <PresetSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/calibration_pattern/MODES/PRESET/SELECT" buttonText={current_preset} >
+            <PresetSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/calibration_pattern/MODES/PRESET/SELECT" title={current_preset} >
                 {dropdown_items}
             </PresetSelectDropdown>
         </TitleCard>
