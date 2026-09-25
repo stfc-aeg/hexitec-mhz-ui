@@ -1,12 +1,12 @@
 import React from 'react';
 
-import {DropdownSelector, WithEndpoint, TitleCard, OdinGraph, StatusBox} from 'odin-react';
+import {EndpointDropdown, WithEndpoint, TitleCard, OdinGraph} from '@dssg/odin-react';
 import {Dropdown, Row, Col, Alert} from 'react-bootstrap';
 import * as Icon from 'react-bootstrap-icons';
 
 import Mermaid from "./Mermaid";
 
-const ClkgenEndpointDropdown = WithEndpoint(DropdownSelector);
+const ClkgenEndpointDropdown = EndpointDropdown;
 
 export function StatusBadge(_ref) {
     let label = _ref.label;
@@ -31,7 +31,7 @@ export function StatusBadge(_ref) {
 
     var fullclass = "badge bg-"+type + " " + (wrap ? "text-wrap" : "") + " text=" + txt;
     return (
-        <span class={fullclass}>{label}</span>
+        <span className={fullclass}>{label}: {_ref.children}</span>
     )
 }
 
@@ -394,10 +394,10 @@ function LOKICPUInfo({cpuInfo, show_cpu_times=true, show_cpu_times_graph=true}) 
         <TitleCard title="LOKI CPU Info">
             <Row>
                 <Col>
-                    <StatusBox label="CPU Load">{Number(cpuInfo?.load[0]).toPrecision(2)}</StatusBox>
+                    <StatusBadge label="CPU Load">{Number(cpuInfo?.load[0]).toPrecision(2)}</StatusBadge>
                 </Col>
                 <Col>
-                    <StatusBox label="CPU Perc">{cpuInfo?.percent + "%"}</StatusBox>
+                    <StatusBadge label="CPU Perc">{cpuInfo?.percent + "%"}</StatusBadge>
                 </Col>
             </Row>
             <Row>
@@ -407,7 +407,7 @@ function LOKICPUInfo({cpuInfo, show_cpu_times=true, show_cpu_times_graph=true}) 
                         {Object.keys(cpuInfo.times).map((timename) => {
                             return (
                                 <Col>
-                                    <StatusBox label={timename}>{cpuInfo.times[timename]}</StatusBox>
+                                    <StatusBadge label={timename}>{cpuInfo.times[timename]}</StatusBadge>
                                 </Col>
                             )
                         })}
@@ -432,16 +432,16 @@ function LOKIMemInfo({memInfo}) {
         <TitleCard title="LOKI Memory Info">
             <Row>
                 <Col>
-                    <StatusBox label="Total">{Math.round(memInfo?.total/1000000) + "MB"}</StatusBox>
+                    <StatusBadge label="Total">{Math.round(memInfo?.total/1000000) + "MB"}</StatusBadge>
                 </Col>
                 <Col>
-                    <StatusBox label="Available">{Math.round(memInfo?.avail/1000000) + "MB"}</StatusBox>
+                    <StatusBadge label="Available">{Math.round(memInfo?.avail/1000000) + "MB"}</StatusBadge>
                 </Col>
                 <Col>
-                    <StatusBox label="Cached">{Math.round(memInfo?.cached/1000000) + "MB"}</StatusBox>
+                    <StatusBadge label="Cached">{Math.round(memInfo?.cached/1000000) + "MB"}</StatusBadge>
                 </Col>
                 <Col>
-                    <StatusBox label="Free">{Math.round(memInfo?.free/1000000) + "MB"}</StatusBox>
+                    <StatusBadge label="Free">{Math.round(memInfo?.free/1000000) + "MB"}</StatusBadge>
                 </Col>
             </Row>
         </TitleCard>
