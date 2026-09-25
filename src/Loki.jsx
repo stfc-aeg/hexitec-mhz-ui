@@ -30,8 +30,19 @@ export function StatusBadge(_ref) {
     }
 
     var fullclass = "badge bg-"+type + " " + (wrap ? "text-wrap" : "") + " text=" + txt;
+
+	const hasLabel = label !== null && label !== undefined && label !== ""
+	const hasValue = _ref.children !== null && _ref.children !== undefined && _ref.children !== ""
+
+	// If supplied with only a value OR label, will display only that. However, if both are supplied
+	// will separate them with colon.
+
     return (
-        <span className={fullclass}>{label}: {_ref.children}</span>
+        <span className={fullclass}>
+			{hasLabel && label}
+			{hasLabel && hasValue && ": "}
+			{hasValue && _ref.children}
+		</span>
     )
 }
 
@@ -63,10 +74,10 @@ export function LOKIClockGenerator({adapterEndpoint}) {
     // Periodic endpoint used for getting the driver name
     //const clkgenEndpoint = useAdapterEndpoint("detector/clkgen", api_addr);
 
-    let currently_selected = adapterEndpoint.data.clkgen?.config_file;
+    let currently_selected = adapterEndpoint.data?.clkgen?.config_file;
 
     // Map each available option to a dropdown option
-    let all_options = adapterEndpoint.data.clkgen?.config_files_avail;
+    let all_options = adapterEndpoint.data?.clkgen?.config_files_avail;
     let options;
     if (typeof all_options !== 'undefined') {
         options = all_options.map((confname) => {
@@ -80,7 +91,7 @@ export function LOKIClockGenerator({adapterEndpoint}) {
 
     return (
         <TitleCard title="LOKI Clock Generator control">
-            Clock Generator Device: <StatusBadge label={adapterEndpoint.data.clkgen?.drivername} type={adapterEndpoint.data.clkgen?.drivername === null? "warning" : "success"} />
+            Clock Generator Device: <StatusBadge label={adapterEndpoint?.data.clkgen?.drivername} type={adapterEndpoint?.data.clkgen?.drivername === null? "warning" : "success"} />
             <ClkgenEndpointDropdown endpoint={adapterEndpoint} event_type="select" fullpath="clkgen/config_file" buttonText={currently_selected ? currently_selected : "None Selected"} >
                 {options}
             </ClkgenEndpointDropdown>
@@ -157,8 +168,8 @@ export function LOKIEnvironment({adapterEndpoint, records_to_render}) {
     }
 
     // Gather current data
-    let tempstates = adapterEndpoint.data.environment?.temperature;
-    let humstates = adapterEndpoint.data.environment?.humidity;
+    let tempstates = adapterEndpoint?.data.environment?.temperature;
+    let humstates = adapterEndpoint?.data.environment?.humidity;
 
     // Gather a timestamp, potentially for use later on
     // TODO
@@ -248,13 +259,13 @@ export function LOKICarrierInfo({adapterEndpoint, loki_connection_state}) {
     return (
         <TitleCard title="LOKI Carrier Info">
             <Row>
-                <span>LOKI system variant <StatusBadge label={adapterEndpoint.data.carrier_info?.platform} /> version <StatusBadge label={adapterEndpoint.data.carrier_info?.version} /></span>
+                <span>LOKI system variant <StatusBadge label={adapterEndpoint.data?.carrier_info?.platform} /> version <StatusBadge label={adapterEndpoint?.data.carrier_info?.version} /></span>
             </Row>
             <Row>
-                <span>Application <StatusBadge label={adapterEndpoint.data.carrier_info?.application_name} /> version <StatusBadge label={adapterEndpoint.data.carrier_info?.application_version} /></span>
+                <span>Application <StatusBadge label={adapterEndpoint.data?.carrier_info?.application_name} /> version <StatusBadge label={adapterEndpoint?.data.carrier_info?.application_version} /></span>
             </Row>
             <Row>
-                <span>Extensions:  <StatusBadge label={adapterEndpoint.data.carrier_info?.extensions} /></span>
+                <span>Extensions:  <StatusBadge label={adapterEndpoint.data?.carrier_info?.extensions} /></span>
             </Row>
         </TitleCard>
     )
@@ -298,17 +309,17 @@ export function LOKICarrierTaskStatus({adapterEndpoint, loki_connection_state, s
         return (<></>)
     }
 
-    let loopstatus = adapterEndpoint.data.carrier_info?.loopstatus;
+    let loopstatus = adapterEndpoint.data?.carrier_info?.loopstatus;
     let loop_exception_found = false;
 
     let looprows;
     if (typeof loopstatus !== 'undefined') {
         let loopnames = Object.keys(loopstatus);
         looprows = loopnames.map((loopname) => {
-            let looprunning = adapterEndpoint.data.carrier_info?.loopstatus[loopname]?.running;
-            let loopdone = adapterEndpoint.data.carrier_info?.loopstatus[loopname]?.done;
-            let loopexception = adapterEndpoint.data.carrier_info?.loopstatus[loopname]?.exception;
-            let loopwdtrigger = adapterEndpoint.data.carrier_info?.loopstatus[loopname]?.wd_state;
+            let looprunning = adapterEndpoint.data?.carrier_info?.loopstatus[loopname]?.running;
+            let loopdone = adapterEndpoint.data?.carrier_info?.loopstatus[loopname]?.done;
+            let loopexception = adapterEndpoint.data?.carrier_info?.loopstatus[loopname]?.exception;
+            let loopwdtrigger = adapterEndpoint.data?.carrier_info?.loopstatus[loopname]?.wd_state;
 
             // we will count watchdog timeouts as exceptions too
             if (loopexception !== "N/A" | loopwdtrigger === "Triggered") {
@@ -354,7 +365,7 @@ export function LOKICarrierTaskStatus({adapterEndpoint, loki_connection_state, s
 
 export function LOKIPerformanceDisplay({adapterEndpoint, show_cpu=true, show_cpu_times=true}) {
 
-    let perfinfo = adapterEndpoint.data.carrier_info?.performance;
+    let perfinfo = adapterEndpoint.data?.carrier_info?.performance;
     console.log('performance info:', perfinfo);
 
     return (
