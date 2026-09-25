@@ -41,7 +41,7 @@ jobs:
     
     - name: Create zip archive
       run: |
-        cd build
+        cd dist
         zip -r build.zip .
     - name: List contents of zip
       run: unzip -l build/build.zip
@@ -50,7 +50,7 @@ jobs:
       uses: ncipollo/release-action@v1
       with:
         artifactErrorsFailBuild: true
-        artifacts: app/dist/build.zip
+        artifacts: dist/build.zip
 
         # Create as a draft so that it can be vetted and notes added
         draft: true
