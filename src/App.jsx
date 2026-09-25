@@ -1,16 +1,16 @@
 import './App.css';
 
-import React from 'react';
+//import React from 'react';
 import {useState} from 'react';
 import {useEffect} from 'react';
 import {useMemo} from 'react';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, ToggleSwitch, StatusBox, DropdownSelector} from 'odin-react';
-import 'odin-react/dist/index.css'
+import {OdinApp, useAdapterEndpoint, TitleCard, WithEndpoint, EndpointCheckbox, EndpointDropdown} from '@dssg/odin-react';
+// import 'odin-react/dist/index.css'
 
-import {LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, StatusBadge} from './Loki.js'
+import {LOKIConnectionAlert, LOKIClockGenerator, LOKICarrierInfo, LOKIEnvironment, LOKICarrierTaskStatus, LOKIPerformanceDisplay, StatusBadge} from './Loki.jsx'
 
 import {Row, Col, Container, ProgressBar, Alert, Button, Spinner, Stack, Accordion, InputGroup, Form, Dropdown} from 'react-bootstrap'
 import * as Icon from 'react-bootstrap-icons';
@@ -160,8 +160,8 @@ function OdinGraph(props) {
 /* eslint-enable */
 
 function HMHz() {
-    const periodicEndpoint = useAdapterEndpoint("lokicarrier", process.env.REACT_APP_ENDPOINT_URL, 1000);
-    const staticEndpoint = useAdapterEndpoint("lokicarrier", process.env.REACT_APP_ENDPOINT_URL);
+    const periodicEndpoint = useAdapterEndpoint("lokicarrier", import.meta.env.VITE_ENDPOINT_URL, 1000);
+    const staticEndpoint = useAdapterEndpoint("lokicarrier", import.meta.env.VITE_ENDPOINT_URL);
 
     const [loki_connection_ok, set_loki_connection_ok] = useState(true);
     const [foundLoopException, setFoundLoopException] = useState(false);
@@ -298,9 +298,9 @@ function HMHz() {
 const VCALEndpointButton = WithEndpoint(Button);
 const FrameLengthEndpointButton = WithEndpoint(Button);
 const IntegrationTimeEndpointButton = WithEndpoint(Button);
-const PreAmpCapDropdown = WithEndpoint(DropdownSelector);
-const PreAmpNegRangeDropdown = WithEndpoint(DropdownSelector);
-const FireflyIgnoreToggleSwitch = WithEndpoint(ToggleSwitch);
+const PreAmpCapDropdown = EndpointDropdown;
+const PreAmpNegRangeDropdown = EndpointDropdown;
+const FireflyIgnoreToggleSwitch = EndpointCheckbox;
 function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init, asic_init, power_board_init, hv_enabled, hv_bias_readback, hv_saved, hv_overridden, hv_mismatch, all_firefly_channels_enabled, set_all_firefly_channels_enabled, peltier_proportion, peltier_en, peltier_saved, peltier_mode, peltier_status, peltier_target, cal_dat, fastdata_ignore_fireflies}) {
     const [vcal, set_vcal] = useState(null);
     const [frame_length_ui, set_frame_length_ui] = useState(null);
@@ -379,14 +379,14 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                     <Accordion.Body>
                         <Row className="justify-content-md-center">
                             <Col md="auto" hidden={!asic_init}>
-                                <PreAmpCapDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/feedback_capacitance" buttonText={Math.round(feedback_capacitance) + "fF (" + feedback_gain + ")"} variant="primary" >
+                                <PreAmpCapDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/feedback_capacitance" title={Math.round(feedback_capacitance) + "fF (" + feedback_gain + ")"} variant="primary" >
                                     <Dropdown.Item eventKey={7}>7fF</Dropdown.Item>
                                     <Dropdown.Item eventKey={14}>14fF</Dropdown.Item>
                                     <Dropdown.Item eventKey={21}>21fF</Dropdown.Item>
                                 </PreAmpCapDropdown>
                             </Col>
                             <Col md="auto" hidden={!asic_init}>
-                                <PreAmpNegRangeDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/negative_range_lowhigh" buttonText={negative_range_kev + "keV (" + negative_range_lowhigh + ")"} variant="primary" >
+                                <PreAmpNegRangeDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/negative_range_lowhigh" title={negative_range_kev + "keV (" + negative_range_lowhigh + ")"} variant="primary" >
                                     <Dropdown.Item eventKey={'low'}>{negative_range_low_kev}keV (low)</Dropdown.Item>
                                     <Dropdown.Item eventKey={'high'}>{negative_range_high_kev}keV (high)</Dropdown.Item>
                                 </PreAmpNegRangeDropdown>
@@ -482,7 +482,7 @@ function HMHzAdvancedSettings({adapterEndpoint, loki_connection_state, cob_init,
                         <Stack gap={1}>
                             <Row>
                                 <Col md={12}>
-                                    <FireflyIgnoreToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Ignore Fireflies" fullpath="application/system_state/FASTDATA_IGNORE_FIREFLIES" checked={adapterEndpoint.data.application?.system_state?.FASTDATA_IGNORE_FIREFLIES} value={adapterEndpoint.data.application?.system_state?.FASTDATA_IGNORE_FIREFLIES} />
+                                    <FireflyIgnoreToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Ignore Fireflies" fullpath="application/system_state/FASTDATA_IGNORE_FIREFLIES" checked={adapterEndpoint.data?.application?.system_state?.FASTDATA_IGNORE_FIREFLIES} value={adapterEndpoint.data?.application?.system_state?.FASTDATA_IGNORE_FIREFLIES} />
                                 </Col>
                             </Row>
                             <Row>
@@ -641,9 +641,9 @@ function HMHzPowerBoardSummaryCard({loki_connection_state, power_board_present, 
     )
 }
 
-const SyncEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
-const RegsEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
-const ASICEnEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
+const SyncEndpointToggleSwitch = EndpointCheckbox;
+const RegsEndpointToggleSwitch = EndpointCheckbox;
+const ASICEnEndpointToggleSwitch = EndpointCheckbox;
 function HMHzCOBSummaryCard({adapterEndpoint, loki_connection_state, cob_present, cob_init, block_temp, diode_temp, asic_en, asic_init, fastdata_init, fastdata_en, asic_sync, ff1_pn, ff2_pn}) {
     if (!loki_connection_state) {
         return (<></>)
@@ -796,17 +796,17 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
                 <Stack gap={1}>
                     <Row>
                         <Col md={12}>
-                            <SyncEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Data SYNC" fullpath="application/system_state/SYNC" checked={adapterEndpoint.data.application?.system_state?.SYNC} value={adapterEndpoint.data.application?.system_state?.SYNC} />
+                            <SyncEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Data SYNC" fullpath="application/system_state/SYNC" checked={adapterEndpoint.data?.application?.system_state?.SYNC} value={adapterEndpoint.data?.application?.system_state?.SYNC} />
                         </Col>
                     </Row>
                     <Row>
                         <Col md={12}>
-                            <RegsEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Regulators" fullpath="application/system_state/REGS_EN" checked={adapterEndpoint.data.application?.system_state?.REGS_EN} value={adapterEndpoint.data.application?.system_state?.REGS_EN} />
+                            <RegsEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Regulators" fullpath="application/system_state/REGS_EN" checked={adapterEndpoint.data?.application?.system_state?.REGS_EN} value={adapterEndpoint.data?.application?.system_state?.REGS_EN} />
                         </Col>
                     </Row>
                     <Row>
                         <Col md={12}>
-                            <ASICEnEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="ASIC Enable" fullpath="application/system_state/ASIC_EN" checked={adapterEndpoint.data.application?.system_state?.ASIC_EN} value={adapterEndpoint.data.application?.system_state?.ASIC_EN} />
+                            <ASICEnEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="ASIC Enable" fullpath="application/system_state/ASIC_EN" checked={adapterEndpoint.data?.application?.system_state?.ASIC_EN} value={adapterEndpoint.data?.application?.system_state?.ASIC_EN} />
                         </Col>
                     </Row>
                 </Stack>
@@ -816,8 +816,8 @@ function HMHzStateControl({adapterEndpoint, loki_connection_state, sys_init_prog
 }
 
 const SaveVCONTEndpointButton = WithEndpoint(Button);
-const HVEnableEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
-const HVAutoEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
+const HVEnableEndpointToggleSwitch = EndpointCheckbox;
+const HVAutoEndpointToggleSwitch = EndpointCheckbox;
 const DirectVCONTEndpointButton = WithEndpoint(Button);
 const BiasTargetEndpointButton = WithEndpoint(Button);
 function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled, power_board_init}) {
@@ -874,7 +874,7 @@ function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled, powe
                                 </InputGroup>
                             </Col>
                             <Col md="auto">
-                                <StatusBox label="">{hvinfo?.target_bias?.toFixed(2) + " v"}</StatusBox>
+                                <StatusBadge label="">{hvinfo?.target_bias?.toFixed(2) + " v"}</StatusBadge>
                             </Col>
                         </Row>
                         <Row hidden={true}>
@@ -887,10 +887,10 @@ function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled, powe
                                 </InputGroup>
                             </Col>
                             <Col md={6} hidden={!hvinfo?.AUTO_MODE_EN}>
-                                <StatusBox label="PID Status">{hvinfo?.PID_STATUS}</StatusBox>
+                                <StatusBadge label="PID Status">{hvinfo?.PID_STATUS}</StatusBadge>
                             </Col>
                             <Col >
-                                <StatusBox label="Control">{hvinfo?.control_voltage?.toFixed(2) + " v"}</StatusBox>
+                                <StatusBadge label="Control">{hvinfo?.control_voltage?.toFixed(2) + " v"}</StatusBadge>
                             </Col>
                         </Row>
                         <Row>
@@ -907,10 +907,10 @@ function HMHzHVControl({adapterEndpoint, loki_connection_state, hv_enabled, powe
                     <TitleCard title="Bias Readback">
                         <Row>
                             <Col md="auto">
-                                <StatusBox label="ADC">{hvinfo?.monitor_voltage?.toFixed(2) + " v"}</StatusBox>
+                                <StatusBadge label="ADC">{hvinfo?.monitor_voltage?.toFixed(2) + " v"}</StatusBadge>
                             </Col>
                             <Col md="auto">
-                                <StatusBox label="Derived Bias">{hvinfo?.readback_bias?.toFixed(0) + " v"}</StatusBox>
+                                <StatusBadge label="Derived Bias">{hvinfo?.readback_bias?.toFixed(0) + " v"}</StatusBadge>
                             </Col>
                         </Row>
                     </TitleCard>
@@ -945,7 +945,7 @@ function HMHzChannelControl({adapterEndpoint, loki_connection_state, cob_init, a
             if (ff_en === undefined || ff_en === false){
                 all_firefly_channels_enabled = false;
             }
-            //const ffEndpointToggleSwitch = WithEndpoint(ToggleSwitch);      // Dynamically generate enable switches for current channel
+            //const ffEndpointToggleSwitch = EndpointCheckbox;      // Dynamically generate enable switches for current channel
             let ff_en_col = (
                 <td>
                     <StatusBadge label={ff_en ? 'Enabled' : 'Disabled'} type={ff_en ? 'success' : 'danger'}/>
@@ -1007,9 +1007,9 @@ function HMHzChannelControl({adapterEndpoint, loki_connection_state, cob_init, a
     )
 }
 
-const PeltierEnEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
+const PeltierEnEndpointToggleSwitch = EndpointCheckbox;
 const SavePeltierEndpointButton = WithEndpoint(Button);
-const PeltierDropdown = WithEndpoint(DropdownSelector);
+const PeltierDropdown = EndpointDropdown;
 function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, power_board_init}) {
     let peltier_info = adapterEndpoint?.data?.application?.peltier;
 
@@ -1066,7 +1066,7 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
                         <PeltierEnEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Peltier Enable" fullpath="application/peltier/enable" checked={peltier_info?.enable} value={peltier_info?.enable} />
                     </Col>
                     <Col md="auto">
-                        <PeltierDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/mode" buttonText={"Mode: " + peltier_info.mode } variant="primary" >
+                        <PeltierDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/mode" title={"Mode: " + peltier_info.mode } variant="primary" >
                             {modes_avail_dropdown_items}
                         </PeltierDropdown>
                     </Col>
@@ -1085,7 +1085,7 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
                         </Row>
                         <Row className="justify-content-md-center">
                             <Col md="auto">
-                                <StatusBox label="Setpoint Predicted Temperature">{peltier_info.temperature}</StatusBox>
+                                <StatusBadge label="Setpoint Predicted Temperature">{peltier_info.temperature}</StatusBadge>
                             </Col>
                             <SavePeltierEndpointButton endpoint={adapterEndpoint} event_type="click" fullpath="application/peltier/proportion_save" value={true} variant={peltier_info?.proportion_save ? "success" : "danger"}>
                                 {!peltier_info?.proportion_save && <Spinner animation="grow" size="sm" />}
@@ -1109,7 +1109,7 @@ function HMHzPeltierControl({adapterEndpoint, loki_connection_state, cob_init, p
                                     </InputGroup>
                                 </Row>
                                 <Row>
-                                    <PeltierDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/pid_target_sensor" buttonText={"Sensor: " + peltier_info.pid_target_sensor } variant="primary" >
+                                    <PeltierDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/peltier/pid_target_sensor" title={"Sensor: " + peltier_info.pid_target_sensor } variant="primary" >
                                         {pid_sensors_avail_dropdown_items}
                                     </PeltierDropdown>
                                 </Row>
@@ -1264,7 +1264,7 @@ function HMHzReadoutRender({image_dat, asic_init, cbar_min, cbar_max, cbar_autor
 }
 
 const ReadoutStartEndpointButton = WithEndpoint(Button);
-const SegmentSelectDropdown = WithEndpoint(DropdownSelector);
+const SegmentSelectDropdown = EndpointDropdown;
 const SegmentTriggerEndpointButton = WithEndpoint(Button);
 function HMHzReadoutSettings({adapterEndpoint, asic_init, readout_cbar_min, set_readout_cbar_min, readout_cbar_max, set_readout_cbar_max, readout_cbar_autorange, set_readout_cbar_autorange}) {
     const [segment_trigger, set_segment_trigger] = useState(null);
@@ -1287,7 +1287,7 @@ function HMHzReadoutSettings({adapterEndpoint, asic_init, readout_cbar_min, set_
                     <Row>
                         <Col>
 
-                            <SegmentSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/segment_readout/SEGMENT_SELECT" buttonText={current_segment === 20 ? "All Segments" : "Segment " + current_segment} variant="primary" >
+                            <SegmentSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/segment_readout/SEGMENT_SELECT" title={current_segment === 20 ? "All Segments" : "Segment " + current_segment} variant="primary" >
                                 <Dropdown.Item eventKey={20}>All Segments</Dropdown.Item>
                                 <Dropdown.Item eventKey={0}>Segment 0</Dropdown.Item>
                                 <Dropdown.Item eventKey={1}>Segment 1</Dropdown.Item>
@@ -1345,8 +1345,8 @@ function HMHzReadoutSettings({adapterEndpoint, asic_init, readout_cbar_min, set_
     )
 }
 
-const CalibrationEnableEndpointToggleSwitch = WithEndpoint(ToggleSwitch);
-const CalModeDropdown = WithEndpoint(DropdownSelector);
+const CalibrationEnableEndpointToggleSwitch = EndpointCheckbox;
+const CalModeDropdown = EndpointDropdown;
 function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en, cal_dat}) {
     if (!asic_init) {
         return (<></>);
@@ -1372,7 +1372,7 @@ function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en, cal_dat}) {
                     <CalibrationEnableEndpointToggleSwitch endpoint={adapterEndpoint} event_type="click" label="Calibration Pattern Enable" fullpath="application/asic_settings/calibration_pattern/ENABLE" checked={cal_en} value={cal_en} />
                     </Col>
                     <Col>
-                        <CalModeDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/calibration_pattern/MODE" buttonText={"Mode: " + cal_mode_current} variant="primary" >
+                        <CalModeDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/calibration_pattern/MODE" title={"Mode: " + cal_mode_current} variant="primary" >
                             {cal_dropdown_items}
                         </CalModeDropdown>
                     </Col>
@@ -1390,7 +1390,7 @@ function HMHzCalpatternRender({adapterEndpoint, asic_init, cal_en, cal_dat}) {
     )
 }
 
-const PresetSelectDropdown = WithEndpoint(DropdownSelector);
+const PresetSelectDropdown = EndpointDropdown;
 function HMHzCalpatternPresetConfig({adapterEndpoint, presetConfig}) {
     let presets_available = presetConfig?.AVAIL;
     let current_preset = presetConfig?.SELECT;
@@ -1402,7 +1402,7 @@ function HMHzCalpatternPresetConfig({adapterEndpoint, presetConfig}) {
 
     return (
         <TitleCard title="Preset Config">
-            <PresetSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/calibration_pattern/MODES/PRESET/SELECT" buttonText={current_preset} >
+            <PresetSelectDropdown endpoint={adapterEndpoint} event_type="select" fullpath="application/asic_settings/calibration_pattern/MODES/PRESET/SELECT" title={current_preset} >
                 {dropdown_items}
             </PresetSelectDropdown>
         </TitleCard>
